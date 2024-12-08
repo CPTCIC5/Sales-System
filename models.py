@@ -106,7 +106,7 @@ class OrganizationFileSystem(Base):
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
     file_upload = Column(String(255))  # Store S3 URL
-    products = relationship("Product", nullable=True)
+    products = relationship("Product")
 
     # Relationship
     organization = relationship("Organization", back_populates="filesystem")
