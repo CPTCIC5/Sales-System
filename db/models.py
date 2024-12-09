@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table,Text, Float, LargeBinary
 from sqlalchemy.orm import relationship,declarative_base
 from datetime import datetime
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
@@ -181,3 +182,8 @@ class Prompt(Base):
 
     # Relationship
     contact = relationship("Contact", back_populates="prompts")
+from sqlalchemy import create_engine
+
+
+engine = create_engine("sqlite:///test.db")
+Base.metadata.create_all(engine)
