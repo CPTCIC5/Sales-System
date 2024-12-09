@@ -27,7 +27,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=datetime.now())
     is_active = Column(Boolean, default=True)
     email = Column(String(255), unique=True, nullable=False)
     phone_number = Column(String(20))

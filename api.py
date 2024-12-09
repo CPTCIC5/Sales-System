@@ -1,10 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from models import Base, User, Profile, Organization, OrganizationKeys, Category, Product, OrganizationFileSystem
-from models import OrganizationInvite, Contact, Tag, Group, Prompt
+from db.models import Base, User, Profile, Organization, OrganizationKeys, Category, Product, OrganizationFileSystem
+from db.models import OrganizationInvite, Contact, Tag, Group, Prompt
 from pydantic import BaseModel
-from typing import List, Optional
 from datetime import datetime
 
 # Create FastAPI app
@@ -28,7 +27,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: str
-    phone_number: Optional[str] = None
+    phone_number: str = None
 
 class UserResponse(BaseModel):
     id: int
@@ -57,7 +56,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     return db_user
 
-@app.get("/users/", response_model=List[UserResponse])
+@app.get("/users/", response_model=list[UserResponse])
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = db.query(User).offset(skip).limit(limit).all()
     return users
@@ -74,14 +73,14 @@ class OrganizationCreate(BaseModel):
     root_user_id: int
     business_name: str
     business_webURL: str
-    industry_type: Optional[str] = None
+    industry_type: str = None
     vspace_id: str
 
 class OrganizationResponse(BaseModel):
     id: int
     business_name: str
     business_webURL: str
-    industry_type: Optional[str]
+    industry_type: str= None
     created_at: datetime
     class Config:
         from_attributes = True
@@ -98,7 +97,7 @@ def create_organization(org: OrganizationCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     return db_org
 
-@app.get("/organizations/", response_model=List[OrganizationResponse])
+@app.get("/organizations/", response_model=list[OrganizationResponse])
 def get_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     organizations = db.query(Organization).offset(skip).limit(limit).all()
     return organizations
@@ -107,18 +106,18 @@ def get_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get
 class ProductCreate(BaseModel):
     org_id: int
     title: str
-    description: Optional[str] = None
-    image: Optional[str] = None
-    product_type_id: Optional[int] = None
-    category_id: Optional[int] = None
-    price_per_quantity: Optional[float] = None
-    status: Optional[str] = None
+    description: str = None
+    image: str = None
+    product_type_id: int = None
+    category_id: int = None
+    price_per_quantity: float = None
+    status: str = None
 
 class ProductResponse(BaseModel):
     id: int
     title: str
-    description: Optional[str]
-    price_per_quantity: Optional[float]
+    description: str= None
+    price_per_quantity: float= None
     created_at: datetime
     class Config:
         from_attributes = True
@@ -135,7 +134,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     return db_product
 
-@app.get("/products/", response_model=List[ProductResponse])
+@app.get("/products/", response_model=list[ProductResponse])
 def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     products = db.query(Product).offset(skip).limit(limit).all()
     return products
@@ -144,18 +143,18 @@ def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
 class ContactCreate(BaseModel):
     org_id: int
     name: str
-    phone_number: Optional[str] = None
-    industry: Optional[str] = None
-    website_url: Optional[str] = None
-    utm_campaign: Optional[str] = None
-    utm_source: Optional[str] = None
-    utm_medium: Optional[str] = None
+    phone_number: str = None
+    industry: str = None
+    website_url: str = None
+    utm_campaign: str = None
+    utm_source: str = None
+    utm_medium: str = None
 
 class ContactResponse(BaseModel):
     id: int
     name: str
-    phone_number: Optional[str]
-    industry: Optional[str]
+    phone_number: str
+    industry: str
     created_at: datetime
     class Config:
         from_attributes = True
@@ -172,7 +171,7 @@ def create_contact(contact: ContactCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     return db_contact
 
-@app.get("/contacts/", response_model=List[ContactResponse])
+@app.get("/contacts/", response_model=list[ContactResponse])
 def get_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     contacts = db.query(Contact).offset(skip).limit(limit).all()
     return contacts
