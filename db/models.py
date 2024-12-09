@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table,Text, Float, LargeBinary
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship,declarative_base
 from datetime import datetime
 
 Base = declarative_base()
@@ -56,7 +55,7 @@ class Organization(Base):
     business_webURL = Column(String(255), unique=True, nullable=False)
     industry_type = Column(String(100))
     vspace_id = Column(String(100), unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
 
     # Relationships
     root_user = relationship("User", foreign_keys=[root_user_id])
@@ -85,7 +84,7 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
-    user = Column(String(255))
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
     image = Column(String(255))
@@ -93,10 +92,11 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey('categories.id'))
     price_per_quantity = Column(Float)
     status = Column(String(50))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
+    last_updated = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     # Relationships
+    user= relationship("User")
     organization = relationship("Organization")
     category = relationship("Category")
 
@@ -104,7 +104,7 @@ class OrganizationFileSystem(Base):
     __tablename__ = 'organization_filesystem'
 
     id = Column(Integer, primary_key=True)
-    org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
+    org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False, unique=True)
     file_upload = Column(String(255))  # Store S3 URL
     products = relationship("Product")
 
@@ -118,7 +118,7 @@ class OrganizationInvite(Base):
     invite_code = Column(String(100), unique=True, nullable=False)
     email = Column(String(255), nullable=False)
     accepted = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
     organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
 
     # Relationship
@@ -138,14 +138,14 @@ class Contact(Base):
     industry = Column(String(100))
     is_favorite = Column(Boolean, default=False)
     thread_id = Column(String(100), unique=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
     website_url = Column(String(255), unique=True)
 
     # Relationships
     organization = relationship("Organization")
     tags = relationship("Tag", back_populates="contacts")
     groups = relationship("Group", secondary=contact_groups, back_populates="contacts")
-    prompts = relationship("Prompt", back_populates="contact")
+    prompts = relationship("Prompt", back_populates="contacts")
 
 class Tag(Base):
     __tablename__ = 'tags'
@@ -154,7 +154,7 @@ class Tag(Base):
     tag_name = Column(String(100), nullable=False)
     org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
     color_code = Column(String(7))  # Hex color code
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
 
     # Relationships
     organization = relationship("Organization")
@@ -177,7 +177,7 @@ class Prompt(Base):
     input_text = Column(Text)
     response_text = Column(Text)
     response_image = Column(String(255))  # Store image URL/path
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
 
     # Relationship
     contact = relationship("Contact", back_populates="prompts")
