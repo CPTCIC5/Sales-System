@@ -5,3 +5,4 @@ logs/
 .env
 test.db
 schema.sql
+xyz.py

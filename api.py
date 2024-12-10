@@ -40,11 +40,11 @@ class UserResponse(BaseModel):
 
 # API endpoints
 @app.post("/users/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = User(
         username=user.username,
         password=user.password,  # Note: Should hash password in production
-        email=user.email,
+        email=user.email,   
         phone_number=user.phone_number
     )
     db.add(db_user)
@@ -57,12 +57,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @app.get("/users/", response_model=list[UserResponse])
-def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 @app.get("/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+async def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -86,7 +86,7 @@ class OrganizationResponse(BaseModel):
         from_attributes = True
 
 @app.post("/organizations/", response_model=OrganizationResponse)
-def create_organization(org: OrganizationCreate, db: Session = Depends(get_db)):
+async def create_organization(org: OrganizationCreate, db: Session = Depends(get_db)):
     db_org = Organization(**org.model_dump())
     db.add(db_org)
     try:
@@ -98,7 +98,7 @@ def create_organization(org: OrganizationCreate, db: Session = Depends(get_db)):
     return db_org
 
 @app.get("/organizations/", response_model=list[OrganizationResponse])
-def get_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     organizations = db.query(Organization).offset(skip).limit(limit).all()
     return organizations
 
@@ -123,7 +123,7 @@ class ProductResponse(BaseModel):
         from_attributes = True
 
 @app.post("/products/", response_model=ProductResponse)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db_product = Product(**product.model_dump())
     db.add(db_product)
     try:
@@ -135,7 +135,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     return db_product
 
 @app.get("/products/", response_model=list[ProductResponse])
-def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     products = db.query(Product).offset(skip).limit(limit).all()
     return products
 
@@ -160,7 +160,7 @@ class ContactResponse(BaseModel):
         from_attributes = True
 
 @app.post("/contacts/", response_model=ContactResponse)
-def create_contact(contact: ContactCreate, db: Session = Depends(get_db)):
+async def create_contact(contact: ContactCreate, db: Session = Depends(get_db)):
     db_contact = Contact(**contact.model_dump())
     db.add(db_contact)
     try:
@@ -172,7 +172,7 @@ def create_contact(contact: ContactCreate, db: Session = Depends(get_db)):
     return db_contact
 
 @app.get("/contacts/", response_model=list[ContactResponse])
-def get_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     contacts = db.query(Contact).offset(skip).limit(limit).all()
     return contacts
 
