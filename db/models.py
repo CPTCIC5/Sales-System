@@ -1,8 +1,20 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table,Text, Float
-from sqlalchemy.orm import relationship,declarative_base
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table, Text, Float
+from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from datetime import datetime
+from sqlalchemy import create_engine
 
+# Database connection
+engine = create_engine("sqlite:///test.db")
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# Database dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Association table for Organization-User many-to-many relationship
 organization_members = Table(
@@ -179,8 +191,3 @@ class Prompt(Base):
 
     # Relationship
     contact= relationship("Contact", back_populates="prompts")
-from sqlalchemy import create_engine
-
-
-engine = create_engine("sqlite:///test.db")
-Base.metadata.create_all(engine)

@@ -2,12 +2,22 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 import logging
-import os
 from pathlib import Path
 from typing import Optional, Dict, Any
 import json
+from pydantic import BaseModel
 
 
+class ContactCreate(BaseModel):
+    org_id: int
+    name: str
+    phone_number: str = None
+    industry: str = None
+    website_url: str = None
+    utm_campaign: str = None
+    utm_source: str = None
+    utm_medium: str = None
+    thread_id: str= None
 # Create logs directory if it doesn't exist
 logs_dir= Path("logs")
 logs_dir.mkdir(exist_ok=True)
@@ -18,7 +28,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     filename=logs_dir / f'sales_assistant_{datetime.now().strftime("%Y%m%d")}.log'
 )
-from db.models import Lead
+
 load_dotenv()
 
 client= OpenAI()
@@ -71,7 +81,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 
-def chat_with_assistant(user_input: str, user: Lead, vspace_id= "vs_R86aTqwD9n52yM1LyNL88q6j"):
+def chat_with_assistant(user_input: str, user: ContactCreate, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
     print(user.name)
     assistant_id = "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
@@ -89,7 +99,7 @@ def chat_with_assistant(user_input: str, user: Lead, vspace_id= "vs_R86aTqwD9n52
         
         # Add the context as the initial message
         context = f"""
-        You're speaking with {user.name} from {user.business_name}
+        You're speaking with {user.name}
         Their business is in the {user.industry} industry
         Website: {user.website_url}
 
@@ -157,11 +167,10 @@ if __name__ == "__main__":
     print("---------------------------------------------------")
     
     # Create a test lead for the main loop
-    test_lead = Lead(
-        id=999,
+    test_lead = ContactCreate(
         name="Dany Alvarez",
-        business_name="DanyAlverez Cosmetics",
-        contact_number="+1234567890",
+        org_id=1,
+        phone_number="+1234567890",
         website_url="https://danyalvarez.co",
         industry="ecommerce"
     )
