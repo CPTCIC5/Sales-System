@@ -32,6 +32,14 @@ contact_groups = Table(
     Column('group_id', Integer, ForeignKey('groups.id'))
 )
 
+# Add this near the top of the file with your other association tables
+contact_tags = Table(
+    'contact_tags',
+    Base.metadata,
+    Column('contact_id', Integer, ForeignKey('contacts.id')),
+    Column('tag_id', Integer, ForeignKey('tags.id'))
+)
+
 class User(Base):
     __tablename__= 'users'
 
@@ -106,11 +114,13 @@ class Product(Base):
     status= Column(String(50))
     created_at= Column(DateTime, default=datetime.now())
     last_updated= Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    filesystem_id = Column(Integer, ForeignKey('organization_filesystem.id'))
 
     # Relationships
     user= relationship("User")
     organization= relationship("Organization")
     category= relationship("Category")
+    filesystem = relationship("OrganizationFileSystem", back_populates="products")
 
 class OrganizationFileSystem(Base):
     __tablename__ = 'organization_filesystem'
@@ -120,7 +130,7 @@ class OrganizationFileSystem(Base):
     file_upload= Column(String(255))  # Store S3 URL
 
     # Relationship
-    products= relationship("Product")
+    products= relationship("Product", back_populates="filesystem")
     organization= relationship("Organization", back_populates="filesystem")
 
 class OrganizationInvite(Base):
@@ -155,9 +165,9 @@ class Contact(Base):
 
     # Relationships
     organization= relationship("Organization")
-    tags= relationship("Tag", back_populates="contacts")
+    tags= relationship("Tag", secondary=contact_tags, back_populates="contacts")
     groups= relationship("Group", secondary=contact_groups, back_populates="contacts")
-    prompts= relationship("Prompt", back_populates="contacts")
+    prompts= relationship("Prompt", back_populates="contact")
 
 class Tag(Base):
     __tablename__= 'tags'
@@ -168,7 +178,7 @@ class Tag(Base):
     created_at= Column(DateTime, default=datetime.now())
 
     # Relationships
-    contacts= relationship("Contact", back_populates="tags")
+    contacts = relationship("Contact", secondary=contact_tags, back_populates="tags")
 
 class Group(Base):
     __tablename__= 'groups'
@@ -177,7 +187,7 @@ class Group(Base):
     name= Column(String(255), nullable=False)
     
     # Relationships
-    contacts= relationship("Contact", secondary=contact_groups, back_populates="groups")
+    contacts = relationship("Contact", secondary=contact_groups, back_populates="groups")
 
 class Prompt(Base):
     __tablename__= 'prompts'
