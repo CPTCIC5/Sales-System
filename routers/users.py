@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from db.models import get_db, User
+from db.models import get_db, User,Profile
 from schemas.users_schema import UserCreateModel, UserUpdateModel, LoginModel
 from utils.auth import get_current_user, create_session, end_session
 
@@ -12,7 +12,7 @@ router= APIRouter(
 
 
 @router.post("/register")
-async def create_user(data: UserCreateModel, db: Session = Depends(get_db)):
+async def create_user(request: Request, data: UserCreateModel, db: Session = Depends(get_db)):
     if data.password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -51,7 +51,26 @@ async def create_user(data: UserCreateModel, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-    return JSONResponse({'detail': 'New User created'}, status_code=status.HTTP_201_CREATED)
+    new_profile= Profile(user_id= new_user.id)
+    db.add(new_profile)
+    try:
+        db.commit()
+        db.refresh(new_profile)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Create session for the new user
+    create_session(request, new_user)
+    
+    return JSONResponse({
+        'detail': 'New User created',
+        'user': {
+            'id': new_user.id,
+            'username': new_user.username,
+            'email': new_user.email
+        }
+    }, status_code=status.HTTP_201_CREATED)
 
 
 
@@ -61,7 +80,7 @@ async def get_user(current_user: User = Depends(get_current_user), db: Session =
     return (my_user)
 
 @router.delete('/delete-user')
-async def edit_user(current_user: User = Depends(get_current_user), db: Session= Depends(get_db)):
+async def delete_user(current_user: User = Depends(get_current_user), db: Session= Depends(get_db)):
     my_user= db.query(User).filter(User.id == current_user.id).first()
     if not my_user:
         return HTTPException(detail="wefuhweewf",status_code=status.HTTP_404_NOT_FOUND)

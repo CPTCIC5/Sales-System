@@ -1,4 +1,4 @@
-from pydantic import BaseModel,HttpUrl,Field
+from pydantic import BaseModel,Field, model_validator
 from openai import OpenAI
 
 client= OpenAI()
@@ -13,6 +13,13 @@ def create_vspace_organization(name):
 class OrganizationCreateModel(BaseModel):
     root_user_id: int
     business_name: str
-    business_webURL: HttpUrl
+    business_webURL: str
     industry_type: str
-    vspace_id: str= Field(default_factory=create_vspace_organization(business_name))
+    vspace_id: str= None
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_vspace_id(cls, values):
+        if "business_name" in values:
+            values["vspace_id"] = create_vspace_organization(values["business_name"])
+        return values
