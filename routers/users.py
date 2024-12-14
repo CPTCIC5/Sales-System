@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends,status,HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from db.models import get_db
-from schemas.users_schema import UserCreateModel,UserUpdateModel
-from db.models import User
+from db.models import get_db, User
+from schemas.users_schema import UserCreateModel, UserUpdateModel, LoginModel
+from utils.auth import get_current_user, create_session, end_session
 
 router= APIRouter(
     prefix="/api/auth"
@@ -39,10 +39,10 @@ async def create_user(data: UserCreateModel, db: Session = Depends(get_db)):
     # Your success logic here
     new_user= User(
         username= data.username,
-        password= data.password,
         email= data.email,
         phone_number= data.phone_no
     )
+    new_user.set_password(data.password)
     print(new_user)
     db.add(new_user)
     try:
@@ -90,7 +90,7 @@ async def update_user(data: UserUpdateModel, user_id: int, db: Session = Depends
     # Update user attributes
     my_user.email = data.email
     my_user.phone_number = data.phone_no
-    my_user.joined_at = data.joined_at
+    
 
     try:
         db.commit()
@@ -100,3 +100,38 @@ async def update_user(data: UserUpdateModel, user_id: int, db: Session = Depends
         raise HTTPException(status_code=400, detail=str(e))
     
     return JSONResponse({'detail': 'User updated successfully'}, status_code=status.HTTP_200_OK)
+
+@router.post("/login")
+async def login(request: Request, data: LoginModel, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == data.username).first()
+    
+    if not user or not user.verify_password(data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+    
+    # Create session
+    create_session(request, user)
+    
+    return {
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        },
+        "message": "Login successful"
+    }
+
+@router.post("/logout")
+async def logout(request: Request):
+    end_session(request)
+    return {"message": "Logged out successfully"}
+
+@router.get("/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
+    }

@@ -1,8 +1,28 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from utils.auth import SECRET_KEY
 from routers import users, contacts, organizations
 from db.models import engine, Base
 
 app = FastAPI()
+
+# Add SessionMiddleware
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    session_cookie="session_cookie",
+    max_age=1800  # 30 minutes in seconds
+)
+
+# CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

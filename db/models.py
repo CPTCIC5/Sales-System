@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, T
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from datetime import datetime
 from sqlalchemy import create_engine
+from passlib.context import CryptContext
 
 # Database connection
 engine = create_engine("sqlite:///test.db")
@@ -40,6 +41,8 @@ contact_tags = Table(
     Column('tag_id', Integer, ForeignKey('tags.id'))
 )
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 class User(Base):
     __tablename__= 'users'
 
@@ -54,6 +57,12 @@ class User(Base):
     # Relationships
     profile= relationship("Profile", back_populates="user", uselist=False)
     organizations= relationship("Organization", secondary=organization_members, back_populates="members")
+
+    def verify_password(self, plain_password):
+        return pwd_context.verify(plain_password, self.password)
+
+    def set_password(self, password):
+        self.password = pwd_context.hash(password)
 
 class Profile(Base):
     __tablename__= 'profiles'

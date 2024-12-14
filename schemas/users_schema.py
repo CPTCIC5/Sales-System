@@ -12,9 +12,6 @@ class UserCreateModel(BaseModel):
 class UserUpdateModel(BaseModel):
     email: EmailStr
     phone_no: str
-    joined_at: datetime
-    phone_number: str
-
 
 
 class LoginModel(BaseModel):
