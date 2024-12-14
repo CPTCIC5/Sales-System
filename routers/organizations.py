@@ -6,6 +6,6 @@ router= APIRouter(
     prefix="/api/organizations"
 )
 
-@router.get('/add')
+@router.get('/create')
 async def add_org(db: Session = Depends(get_db)):
     return {"F"}

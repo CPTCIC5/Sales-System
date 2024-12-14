@@ -55,24 +55,24 @@ async def create_user(data: UserCreateModel, db: Session = Depends(get_db)):
 
 
 
-@router.get('/user/{user_id}')
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    my_user= db.query(User).filter(User.id == user_id).first()
+@router.get('/user')
+async def get_user(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    my_user= db.query(User).filter(User.id == current_user.id).first()
     return (my_user)
 
-@router.delete('/delete-user/{user_id}')
-async def edit_user(user_id: int, db: Session= Depends(get_db)):
-    my_user= db.query(User).filter(User.id == user_id).first()
+@router.delete('/delete-user')
+async def edit_user(current_user: User = Depends(get_current_user), db: Session= Depends(get_db)):
+    my_user= db.query(User).filter(User.id == current_user.id).first()
     if not my_user:
         return HTTPException(detail="wefuhweewf",status_code=status.HTTP_404_NOT_FOUND)
     db.delete(my_user)
     db.commit()
     return JSONResponse({'detail': "hmm deleted"}, status_code=status.HTTP_204_NO_CONTENT)
 
-@router.patch('/edit-user/{user_id}')
-async def update_user(data: UserUpdateModel, user_id: int, db: Session = Depends(get_db)):
+@router.patch('/edit-user/')
+async def update_user(data: UserUpdateModel, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # First check if user exists
-    my_user = db.query(User).filter(User.id == user_id).first()
+    my_user = db.query(User).filter(User.id == current_user.id).first()
     if not my_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -127,11 +127,3 @@ async def login(request: Request, data: LoginModel, db: Session = Depends(get_db
 async def logout(request: Request):
     end_session(request)
     return {"message": "Logged out successfully"}
-
-@router.get("/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email
-    }
