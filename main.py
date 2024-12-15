@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from utils.auth import SECRET_KEY
-from routers import users, contacts, organizations
+from routers import users, contacts, organizations, files
 from db.models import engine, Base
 
 app = FastAPI()
@@ -31,6 +31,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(organizations.router)
+app.include_router(files.router)
 
 if __name__ == "__main__":
     import uvicorn

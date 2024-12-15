@@ -135,13 +135,27 @@ class Product(Base):
 class OrganizationFileSystem(Base):
     __tablename__ = 'organization_filesystem'
 
-    id= Column(Integer, primary_key=True)
-    org_id= Column(Integer, ForeignKey('organizations.id'), nullable=False, unique=True)
-    file_upload= Column(String(255))  # Store S3 URL
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False, unique=True)
+    api= Column(String(500), nullable=True)
 
+    # Relationships
+    products = relationship("Product", back_populates="filesystem")
+    organization = relationship("Organization", back_populates="filesystem")
+    files = relationship("OrganizationFile", back_populates="filesystem")
+
+class OrganizationFile(Base):
+    __tablename__ = 'organization_files'
+
+    id = Column(Integer, primary_key=True)
+    filesystem_id = Column(Integer, ForeignKey('organization_filesystem.id'), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    file_path = Column(String(255), nullable=False)  # Store S3 URL
+    file_type = Column(String(50))  # e.g., 'image', 'document', etc.
+    uploaded_at = Column(DateTime, default=datetime.now())
+    
     # Relationship
-    products= relationship("Product", back_populates="filesystem")
-    organization= relationship("Organization", back_populates="filesystem")
+    filesystem = relationship("OrganizationFileSystem", back_populates="files")
 
 class OrganizationInvite(Base):
     __tablename__ = "organization_invites"

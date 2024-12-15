@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.orm import Session
-from db.models import get_db,User,Organization,OrganizationInvite, OrganizationKeys
+from db.models import get_db,User,Organization,OrganizationInvite, OrganizationKeys, OrganizationFileSystem
 from utils.auth import get_current_user
 from schemas.organizations_schema import OrganizationCreateModel, OrganizationInviteCreateModel
 from fastapi.responses import JSONResponse
@@ -25,15 +25,22 @@ async def create_org(data: OrganizationCreateModel, db: Session = Depends(get_db
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
-        org_data= OrganizationKeys(organization_id= new_org.id)
-        db.add(org_data)
+
+        # Create OrganizationKeys
+        org_data = OrganizationKeys(organization_id=new_org.id)
+        # Create OrganizationFileSystem
+        org_filesystem = OrganizationFileSystem(org_id=new_org.id)
+        
+        db.add_all([org_data, org_filesystem])
         try:
             db.commit()
             db.refresh(org_data)
+            db.refresh(org_filesystem)
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
-        return JSONResponse({'detail': 'New Organization  created'}, status_code=status.HTTP_201_CREATED)
+            
+        return JSONResponse({'detail': 'New Organization created'}, status_code=status.HTTP_201_CREATED)
     return HTTPException(status_code=status.HTTP_226_IM_USED, detail="One User can only own only 1 organization, create new account")
 
 
