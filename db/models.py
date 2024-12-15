@@ -121,7 +121,7 @@ class Product(Base):
     product_type= Column(Integer)
     category_id= Column(Integer, ForeignKey('categories.id'))
     price_per_quantity= Column(Float)
-    status= Column(String(50))
+    is_available= Column(Boolean, default=True)
     created_at= Column(DateTime, default=datetime.now())
     last_updated= Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     filesystem_id = Column(Integer, ForeignKey('organization_filesystem.id'))
@@ -151,7 +151,6 @@ class OrganizationFile(Base):
     filesystem_id = Column(Integer, ForeignKey('organization_filesystem.id'), nullable=False)
     file_name = Column(String(255), nullable=False)
     file_path = Column(String(255), nullable=False)  # Store S3 URL
-    file_type = Column(String(50))  # e.g., 'image', 'document', etc.
     uploaded_at = Column(DateTime, default=datetime.now())
     
     # Relationship
