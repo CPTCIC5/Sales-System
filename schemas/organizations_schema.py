@@ -1,6 +1,6 @@
-from pydantic import BaseModel,Field, model_validator
+from pydantic import BaseModel,EmailStr, model_validator, Field
 from openai import OpenAI
-
+import random
 client= OpenAI()
 
 def create_vspace_organization(name):
@@ -23,3 +23,15 @@ class OrganizationCreateModel(BaseModel):
         if "business_name" in values:
             values["vspace_id"] = create_vspace_organization(values["business_name"])
         return values
+    
+
+class OrganizationInviteCreateModel(BaseModel):
+    accepted: bool= False
+    invite_code: str = Field(default_factory=lambda: random.randint(100000, 999999))
+    email: EmailStr
+
+
+
+class OrganizationKeysModel(BaseModel):
+    organization_id: int
+    whatsapp_business_token: str = None

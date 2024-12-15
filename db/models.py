@@ -91,6 +91,7 @@ class Organization(Base):
     members= relationship("User", secondary=organization_members, back_populates="organizations")
     organization_keys= relationship("OrganizationKeys", back_populates="organization", uselist=False)
     filesystem= relationship("OrganizationFileSystem", back_populates="organization")
+    invites = relationship("OrganizationInvite", back_populates="organization")
 
 class OrganizationKeys(Base):
     __tablename__= 'organization_keys'
@@ -143,17 +144,16 @@ class OrganizationFileSystem(Base):
     organization= relationship("Organization", back_populates="filesystem")
 
 class OrganizationInvite(Base):
-    __tablename__= 'organization_invites'
-
-    id= Column(Integer, primary_key=True)
-    invite_code= Column(String(100), unique=True, nullable=False)
-    email= Column(String(255), nullable=False)
-    accepted= Column(Boolean, default=False)
-    created_at= Column(DateTime, default=datetime.now())
-    organization_id= Column(Integer, ForeignKey('organizations.id'), nullable=False)
-
-    # Relationship
-    organization= relationship("Organization")
+    __tablename__ = "organization_invites"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"))
+    email = Column(String)
+    invite_code = Column(String)
+    accepted = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    organization = relationship("Organization", back_populates="invites")
 
 class Contact(Base):
     __tablename__= 'contacts'
