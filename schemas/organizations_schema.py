@@ -35,3 +35,12 @@ class OrganizationInviteCreateModel(BaseModel):
 class OrganizationKeysModel(BaseModel):
     organization_id: int
     whatsapp_business_token: str = None
+
+
+class OrganizationFileSystemUpdate(BaseModel):
+    api: str= None
+
+class OrganizationFiles(BaseModel):
+    filesystem_id: int
+    file_name: str
+    file_path: str

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.orm import Session
 from db.models import get_db,User,Organization,OrganizationInvite, OrganizationKeys, OrganizationFileSystem
 from utils.auth import get_current_user
-from schemas.organizations_schema import OrganizationCreateModel, OrganizationInviteCreateModel
+from schemas.organizations_schema import OrganizationCreateModel, OrganizationInviteCreateModel, OrganizationFileSystemUpdate
 from fastapi.responses import JSONResponse
 router= APIRouter(
     prefix="/api/organizations"
@@ -100,4 +100,52 @@ async def organization_invite(
             'invite_code': new_invite.invite_code
         },
         status_code=status.HTTP_201_CREATED
+    )
+
+@router.patch('/organization-filesystem')
+async def update_organization_filesystem(
+    data: OrganizationFileSystemUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    # Get user's organization
+    users_org = db.query(Organization).filter(Organization.root_user == current_user).first()
+    if not users_org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+    
+    # Verify user has permission (is root user)
+    if users_org.root_user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization owner can update filesystem settings"
+        )
+
+    # Get and update filesystem
+    filesystem_org = db.query(OrganizationFileSystem).filter(
+        OrganizationFileSystem.org_id == users_org.id
+    ).first()
+    
+    if not filesystem_org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization filesystem not found"
+        )
+
+    # Update fields if provided in request
+    if data.api is not None:
+        filesystem_org.api = data.api
+
+    try:
+        db.commit()
+        db.refresh(filesystem_org)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return JSONResponse(
+        {"detail": "Organization filesystem updated successfully"},
+        status_code=status.HTTP_200_OK
     )
