@@ -4,6 +4,7 @@ from db.models import get_db,User,Organization,OrganizationInvite, OrganizationK
 from utils.auth import get_current_user
 from schemas.organizations_schema import OrganizationCreateModel, OrganizationInviteCreateModel, OrganizationFileSystemUpdate
 from fastapi.responses import JSONResponse
+
 router= APIRouter(
     prefix="/api/organizations"
 )
@@ -16,7 +17,8 @@ async def create_org(data: OrganizationCreateModel, db: Session = Depends(get_db
             root_user_id= current_user.id,
             business_name= data.business_name,
             business_webURL= data.business_webURL,
-            industry_type= data.business_webURL
+            industry_type= data.industry_type,
+            vspace_id= data.vspace_id
         )
         db.add(new_org)
         try:

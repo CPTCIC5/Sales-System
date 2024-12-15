@@ -30,10 +30,8 @@ async def create_product(
     current_user: User = Depends(get_current_user)
 ):
     # Get user's organization - using the organization_members association table
-    organization = db.query(Organization)\
-        .join(organization_members)\
-        .filter(organization_members.c.user_id == current_user.id)\
-        .first()
+    organization= db.query(Organization).filter(Organization.root_user == current_user).first()
+
     
     if not organization:
         raise HTTPException(
@@ -79,8 +77,7 @@ async def update_product(
 ):
     # First check if product exists and belongs to current user
     product = db.query(Product).filter(
-        Product.id == product_id,
-        Product.user_id == current_user.id
+        Product.id == product_id
     ).first()
     
     if not product:
