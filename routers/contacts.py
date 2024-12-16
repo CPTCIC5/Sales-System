@@ -268,6 +268,50 @@ async def paginated_group(group_id: int, current_user: User = Depends(get_curren
     return HTTPException(detail="Not found", status_code=status.HTTP_404_NOT_FOUND)
 
 
+@router.post('/tags/{contact_id}/assign/{tag_id}')
+async def assign_tag(
+    contact_id: int,
+    tag_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get contact and verify access
+    contact = db.query(Contact).join(
+        Organization
+    ).filter(
+        Contact.id == contact_id,
+        Organization.members.any(id=current_user.id)
+    ).first()
+    
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found or access denied"
+        )
+
+    # Get tag
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+
+    # Add tag to contact if not already assigned
+    if tag not in contact.tags:
+        contact.tags.append(tag)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
+    return JSONResponse(
+        {'detail': 'Tag assigned successfully'},
+        status_code=status.HTTP_200_OK
+    )
+
+
 @router.patch('/groups/edit/{group_id}')
 async def update_group(
     group_id: int,
@@ -293,6 +337,48 @@ async def update_group(
     
     return JSONResponse(
         {'detail': 'Group updated successfully'},
+        status_code=status.HTTP_200_OK
+    )
+
+@router.post('/groups/{contact_id}/assign/{group_id}')
+async def assign_group(
+    contact_id: int,
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get contact and verify access
+    contact = db.query(Contact).join(
+        Organization
+    ).filter(
+        Contact.id == contact_id,
+    ).first()
+    
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found or access denied"
+        )
+
+    # Get group
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found"
+        )
+
+    # Add contact to group if not already assigned
+    if contact not in group.contacts:
+        group.contacts.append(contact)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
+    return JSONResponse(
+        {'detail': 'Contact assigned to group successfully'},
         status_code=status.HTTP_200_OK
     )
 
@@ -363,92 +449,3 @@ async def list_prompts(
     ).all()
     
     return prompts
-
-
-@router.post('/tags/{contact_id}/assign/{tag_id}')
-async def assign_tag(
-    contact_id: int,
-    tag_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    # Get contact and verify access
-    contact = db.query(Contact).join(
-        Organization
-    ).filter(
-        Contact.id == contact_id,
-        Organization.members.any(id=current_user.id)
-    ).first()
-    
-    if not contact:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contact not found or access denied"
-        )
-
-    # Get tag
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
-    if not tag:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tag not found"
-        )
-
-    # Add tag to contact if not already assigned
-    if tag not in contact.tags:
-        contact.tags.append(tag)
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=400, detail=str(e))
-
-    return JSONResponse(
-        {'detail': 'Tag assigned successfully'},
-        status_code=status.HTTP_200_OK
-    )
-
-
-
-@router.post('/groups/{contact_id}/assign/{group_id}')
-async def assign_group(
-    contact_id: int,
-    group_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    # Get contact and verify access
-    contact = db.query(Contact).join(
-        Organization
-    ).filter(
-        Contact.id == contact_id,
-        Organization.members.any(id=current_user.id)
-    ).first()
-    
-    if not contact:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contact not found or access denied"
-        )
-
-    # Get group
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found"
-        )
-
-    # Add contact to group if not already assigned
-    if contact not in group.contacts:
-        group.contacts.append(contact)
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=400, detail=str(e))
-
-    return JSONResponse(
-        {'detail': 'Contact assigned to group successfully'},
-        status_code=status.HTTP_200_OK
-    )
