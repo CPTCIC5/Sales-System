@@ -140,4 +140,4 @@ async def delete_product(product_id: int, current_user: User = Depends(get_curre
         db.delete(product)
         db.commit()
         return JSONResponse({"detail":"Product Deleted Successfully"}, status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=400)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

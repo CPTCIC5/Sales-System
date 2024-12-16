@@ -4,7 +4,7 @@ from db.models import get_db, User, Contact, Tag, Group, Prompt, Organization
 from utils.auth import get_current_user
 from schemas.contacts_schema import (
     ContactModel, ContactUpdateModel,
-    TagModel, TagUpdateModel,
+    TagModel,
     GroupModel, GroupUpdateModel,
     PromptModel
 )
@@ -221,34 +221,14 @@ async def list_tags(
     tags = db.query(Tag).all()
     return tags
 
-@router.patch('/tags/edit/{tag_id}')
-async def update_tag(
-    tag_id: int,
-    data: TagUpdateModel,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
-    if not tag:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tag not found"
-        )
-    
-    for field, value in data.dict(exclude_unset=True).items():
-        setattr(tag, field, value)
-    
-    try:
+@router.delete('/tags/delete/{tag_id}')
+async def delete_tag(tag_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    tag= db.query(Tag).filter(Tag.id == tag_id).first()
+    if tag:
+        db.delete(tag)
         db.commit()
-        db.refresh(tag)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-    
-    return JSONResponse(
-        {'detail': 'Tag updated successfully'},
-        status_code=status.HTTP_200_OK
-    )
+        return JSONResponse({"detail": "Tag deleted successfully"}, status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 # Group endpoints
 @router.post('/groups/create')
@@ -280,6 +260,14 @@ async def list_groups(
     groups = db.query(Group).all()
     return groups
 
+@router.get('/groups/{group_id}')
+async def paginated_group(group_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    group= db.query(Group).filter(Group.id == group_id).first()
+    if group:
+        return group.contacts
+    return HTTPException(detail="Not found", status_code=status.HTTP_404_NOT_FOUND)
+
+
 @router.patch('/groups/edit/{group_id}')
 async def update_group(
     group_id: int,
@@ -307,6 +295,16 @@ async def update_group(
         {'detail': 'Group updated successfully'},
         status_code=status.HTTP_200_OK
     )
+
+@router.delete('/groups/{group_id}')
+async def group_delete(group_id: int,db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+    group= db.query(Group).filter(Group.id == group_id).first()
+    if group:
+        db.delete(group)
+        db.commit()
+        return JSONResponse({'detail': "Group deleted"}, status_code=status.HTTP_204_NO_CONTENT)
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    
 
 # Prompt endpoints
 @router.post('/prompts/create/{contact_id}')

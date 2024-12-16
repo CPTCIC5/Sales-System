@@ -43,9 +43,7 @@ class TagModel(BaseModel):
     tag_name: str
     color_code: Optional[str] = None
 
-class TagUpdateModel(BaseModel):
-    tag_name: Optional[str] = None
-    color_code: Optional[str] = None
+
 
 class GroupModel(BaseModel):
     name: str
