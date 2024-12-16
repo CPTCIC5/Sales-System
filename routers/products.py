@@ -23,6 +23,22 @@ async def create_category(
         raise HTTPException(status_code=400, detail=str(e))
     return JSONResponse({'detail': "New Category Registered"}, status_code=status.HTTP_201_CREATED)
 
+@router.get('/all-category-options')
+async def get_all_categories(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    categories= db.query(Category).all()
+    return categories
+
+
+@router.delete('/delete-category/{category_id}')
+async def delete_category(category_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    element= db.query(Category).filter( Category.id == category_id).first()
+    if element:
+        db.delete(element)
+        db.commit()
+        return JSONResponse({"detail": "Deleted"},status_code=status.HTTP_204_NO_CONTENT)
+    return HTTPException({"detail":"Not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+
 @router.post("/create")
 async def create_product(
     data: ProductModel,
@@ -67,6 +83,11 @@ async def get_products(current_user: User = Depends(get_current_user), db: Sessi
     my_products= db.query(Product).filter(Product.user_id == current_user.id).all()
     return my_products
 
+@router.get('/{product_id}')
+async def get_product(product_id: int, db: Session = Depends(get_db), User= Depends(get_current_user)):
+    get_prod= db.query(Product).filter(Product.id == product_id).first()
+    if get_prod:
+        return get_prod
 
 @router.patch('/edit-{product_id}')
 async def update_product(

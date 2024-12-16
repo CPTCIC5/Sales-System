@@ -9,11 +9,20 @@ from schemas.contacts_schema import (
     PromptModel
 )
 from fastapi.responses import JSONResponse
-from typing import List
+from openai import OpenAI
+from dotenv import load_dotenv
 
+load_dotenv()
+client= OpenAI()
 router = APIRouter(
     prefix="/api/contacts"
 )
+
+@router.get('/{contact_id}')
+async def get_contact(contact_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    paginated_contact= db.query(Contact).filter(Contact.id == contact_id).first()
+    return paginated_contact
+
 
 # Contact endpoints
 @router.post('/create')
@@ -22,17 +31,50 @@ async def create_contact(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verify organization exists and user has access
-    org = db.query(Organization).filter(
-        Organization.id == data.org_id,
-        Organization.members.any(id=current_user.id)
-    ).first()
-    
-    if not org:
+    # Get user's organization (similar to organizations.py)
+    users_org = db.query(Organization).filter(Organization.root_user == current_user).first()
+    if not users_org:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found or access denied"
+            detail="Organization not found"
         )
+
+    # Verify the org_id matches the user's organization
+    if users_org.id != data.org_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization"
+        )
+
+    # Check if phone number already exists in this organization
+    if data.phone_number:
+        existing_contact = db.query(Contact).filter(
+            Contact.org_id == data.org_id,
+            Contact.phone_number == data.phone_number
+        ).first()
+        
+        if existing_contact:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already exists in this organization"
+            )
+
+    # Update thread with organization settings
+    if data.thread_id:
+        try:
+            client.beta.threads.update(
+                thread_id=data.thread_id,
+                tool_resources={
+                    "file_search": {
+                        "vector_store_ids": [users_org.vspace_id]
+                    }
+                }
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to update thread settings: {str(e)}"
+            )
 
     new_contact = Contact(
         org_id=data.org_id,
@@ -44,7 +86,8 @@ async def create_contact(
         utm_campaign=data.utm_campaign,
         utm_source=data.utm_source,
         utm_medium=data.utm_medium,
-        is_favorite=data.is_favorite
+        is_favorite=data.is_favorite,
+        thread_id=data.thread_id
     )
     
     db.add(new_contact)
@@ -65,12 +108,17 @@ async def list_contacts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Get contacts from organizations where user is a member
-    contacts = db.query(Contact).join(
-        Organization,
-        Contact.org_id == Organization.id
-    ).filter(
-        Organization.members.any(id=current_user.id)
+    # Get user's organization
+    users_org = db.query(Organization).filter(Organization.root_user == current_user).first()
+    if not users_org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    # Get contacts for this organization
+    contacts = db.query(Contact).filter(
+        Contact.org_id == users_org.id
     ).all()
     
     return contacts
@@ -85,8 +133,7 @@ async def update_contact(
     contact = db.query(Contact).join(
         Organization
     ).filter(
-        Contact.id == contact_id,
-        Organization.members.any(id=current_user.id)
+        Contact.id == contact_id
     ).first()
     
     if not contact:
@@ -120,8 +167,7 @@ async def delete_contact(
     contact = db.query(Contact).join(
         Organization
     ).filter(
-        Contact.id == contact_id,
-        Organization.members.any(id=current_user.id)
+        Contact.id == contact_id
     ).first()
     
     if not contact:
@@ -319,3 +365,92 @@ async def list_prompts(
     ).all()
     
     return prompts
+
+
+@router.post('/tags/{contact_id}/assign/{tag_id}')
+async def assign_tag(
+    contact_id: int,
+    tag_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get contact and verify access
+    contact = db.query(Contact).join(
+        Organization
+    ).filter(
+        Contact.id == contact_id,
+        Organization.members.any(id=current_user.id)
+    ).first()
+    
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found or access denied"
+        )
+
+    # Get tag
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+
+    # Add tag to contact if not already assigned
+    if tag not in contact.tags:
+        contact.tags.append(tag)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
+    return JSONResponse(
+        {'detail': 'Tag assigned successfully'},
+        status_code=status.HTTP_200_OK
+    )
+
+
+
+@router.post('/groups/{contact_id}/assign/{group_id}')
+async def assign_group(
+    contact_id: int,
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get contact and verify access
+    contact = db.query(Contact).join(
+        Organization
+    ).filter(
+        Contact.id == contact_id,
+        Organization.members.any(id=current_user.id)
+    ).first()
+    
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Contact not found or access denied"
+        )
+
+    # Get group
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found"
+        )
+
+    # Add contact to group if not already assigned
+    if contact not in group.contacts:
+        group.contacts.append(contact)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+
+    return JSONResponse(
+        {'detail': 'Contact assigned to group successfully'},
+        status_code=status.HTTP_200_OK
+    )
