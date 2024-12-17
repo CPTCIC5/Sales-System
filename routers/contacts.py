@@ -103,7 +103,7 @@ async def create_contact(
         status_code=status.HTTP_201_CREATED
     )
 
-@router.get('/list')
+@router.get('/')
 async def list_contacts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -188,6 +188,15 @@ async def delete_contact(
         status_code=status.HTTP_204_NO_CONTENT
     )
 
+
+@router.get('/groups')
+async def list_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print('wfewefew')
+    groups= db.query(Group).all()
+    print(groups)
+    return groups
+
+
 # Tag endpoints
 @router.post('/tags/create')
 async def create_tag(
@@ -213,13 +222,9 @@ async def create_tag(
         status_code=status.HTTP_201_CREATED
     )
 
-@router.get('/tags/list')
-async def list_tags(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    tags = db.query(Tag).all()
-    return tags
+@router.get('/tags')
+async def list_tags(current_user: User = Depends(get_current_user),db: Session = Depends(get_db)):
+    return {"fewwfe": "fe3ffe3"}
 
 @router.delete('/tags/delete/{tag_id}')
 async def delete_tag(tag_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -252,13 +257,7 @@ async def create_group(
         status_code=status.HTTP_201_CREATED
     )
 
-@router.get('/groups/list')
-async def list_groups(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    groups = db.query(Group).all()
-    return groups
+
 
 @router.get('/groups/{group_id}')
 async def paginated_group(group_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

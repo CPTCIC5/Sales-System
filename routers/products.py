@@ -78,7 +78,7 @@ async def create_product(
     return JSONResponse({'detail': "New Product Registered"}, status_code=status.HTTP_201_CREATED)
 
 
-@router.get('/')
+@router.get('/', response_model=list[ProductModel])
 async def get_products(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     my_products= db.query(Product).filter(Product.user_id == current_user.id).all()
     return my_products

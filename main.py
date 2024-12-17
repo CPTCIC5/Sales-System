@@ -12,7 +12,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     session_cookie="session_cookie",
-    max_age=1800  # 30 minutes in seconds
+    max_age=1800000000000  # 30 minutes in seconds
 )
 
 # CORS middleware configuration

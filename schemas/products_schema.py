@@ -3,7 +3,7 @@ from typing import Optional
 
 class ProductModel(BaseModel):
     title: str
-    desc: str
+    desc: str= None
     image: Optional[str] = None
     product_type: int
     category_id: int
