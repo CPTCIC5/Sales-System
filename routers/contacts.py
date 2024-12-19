@@ -6,7 +6,7 @@ from schemas.contacts_schema import (
     ContactModel, ContactUpdateModel,
     TagModel,
     GroupModel, GroupUpdateModel,
-    PromptModel
+    PrompCreatetModel
 )
 from fastapi.responses import JSONResponse
 from openai import OpenAI
@@ -395,15 +395,12 @@ async def group_delete(group_id: int,db: Session = Depends(get_db),current_user:
 @router.post('/prompts/create/{contact_id}')
 async def create_prompt(
     contact_id: int,
-    data: PromptModel,
+    data: PrompCreatetModel,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    contact = db.query(Contact).join(
-        Organization
-    ).filter(
-        Contact.id == contact_id,
-        Organization.members.any(id=current_user.id)
+    contact = db.query(Contact).join(Organization).filter(
+        Contact.id == contact_id,Organization.members.any(id=current_user.id)
     ).first()
     
     if not contact:

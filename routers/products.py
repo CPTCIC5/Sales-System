@@ -4,6 +4,8 @@ from db.models import get_db, User, Product, Category, Organization, organizatio
 from utils.auth import get_current_user
 from fastapi.responses import JSONResponse
 from schemas.products_schema import CategoryModel, ProductModel
+import requests
+import json
 
 router = APIRouter(prefix="/api/products")
 
@@ -78,10 +80,16 @@ async def create_product(
     return JSONResponse({'detail': "New Product Registered"}, status_code=status.HTTP_201_CREATED)
 
 
-@router.get('/', response_model=list[ProductModel])
+@router.get('/')
 async def get_products(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     my_products= db.query(Product).filter(Product.user_id == current_user.id).all()
-    return my_products
+    response= requests.get('https://dummyapi.online/api/movies')
+    if response.status_code == 200:
+        data= json.loads(response.text)
+    datt= []
+    datt.append(my_products)
+    datt.append(data)
+    return datt
 
 @router.get('/{product_id}')
 async def get_product(product_id: int, db: Session = Depends(get_db), User= Depends(get_current_user)):

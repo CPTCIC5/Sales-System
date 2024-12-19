@@ -11,7 +11,7 @@ def create_vspace_organization(name):
 
 
 class OrganizationCreateModel(BaseModel):
-    root_user_id: int
+    root_user_id: int= None
     business_name: str
     business_webURL: str
     industry_type: str

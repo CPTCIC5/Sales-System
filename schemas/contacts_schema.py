@@ -51,7 +51,13 @@ class GroupModel(BaseModel):
 class GroupUpdateModel(BaseModel):
     name: str
 
-class PromptModel(BaseModel):
+class PrompCreatetModel(BaseModel):
     input_text: str
-    response_text: Optional[str] = None
-    response_image: Optional[str] = None
+    response_text: str
+    response_image: str
+
+
+class PromptDataDetailModel(BaseModel):
+    id: int
+    created_at: datetime
+    contact: ContactModel

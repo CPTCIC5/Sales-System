@@ -1,33 +1,8 @@
 from openai import OpenAI
 from dotenv import load_dotenv
-from datetime import datetime
-import logging
-from pathlib import Path
 from typing import Optional, Dict, Any
 import json
-from pydantic import BaseModel
-
-
-class ContactCreate(BaseModel):
-    org_id: int
-    name: str
-    phone_number: str = None
-    industry: str = None
-    website_url: str = None
-    utm_campaign: str = None
-    utm_source: str = None
-    utm_medium: str = None
-    thread_id: str= None
-# Create logs directory if it doesn't exist
-logs_dir= Path("logs")
-logs_dir.mkdir(exist_ok=True)
-
-# Update logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename=logs_dir / f'sales_assistant_{datetime.now().strftime("%Y%m%d")}.log'
-)
+from schemas.contacts_schema import ContactModel
 
 load_dotenv()
 
@@ -46,14 +21,11 @@ def safe_execute_tool(func_name: str, arguments: Dict[str, Any]) -> Optional[Dic
     Safely execute tool functions with error handling and logging
     """
     try:
-        logging.info(f"Executing {func_name} with arguments: {arguments}")
         if func_name == "get_meeting_link":
             result = get_meeting_link()
         
-        logging.info(f"Successfully executed {func_name}: {result}")
         return result
     except Exception as e:
-        logging.error(f"Error executing {func_name}: {str(e)}", exc_info=True)
         return {"error": str(e)}
     
 
@@ -72,7 +44,6 @@ def handle_tool_calls(tool_calls):
                 "output": json.dumps(result)
             })
         except Exception as e:
-            logging.error(f"Tool call handling error: {str(e)}", exc_info=True)
             tool_outputs.append({
                 "tool_call_id": tool_call.id,
                 "output": json.dumps({"error": "Internal processing error"})
@@ -81,7 +52,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 
-def chat_with_assistant(user_input: str, user: ContactCreate, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
+def chat_with_assistant(user_input: str, user: ContactModel, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
     print(user.name)
     assistant_id = "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
@@ -167,7 +138,7 @@ if __name__ == "__main__":
     print("---------------------------------------------------")
     
     # Create a test lead for the main loop
-    test_lead = ContactCreate(
+    test_lead = ContactModel(
         name="Dany Alvarez",
         org_id=1,
         phone_number="+1234567890",

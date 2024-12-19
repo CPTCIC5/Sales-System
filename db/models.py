@@ -169,27 +169,27 @@ class OrganizationInvite(Base):
     organization = relationship("Organization", back_populates="invites")
 
 class Contact(Base):
-    __tablename__= 'contacts'
+    __tablename__ = 'contacts'
 
-    id= Column(Integer, primary_key=True)
-    org_id= Column(Integer, ForeignKey('organizations.id'), nullable=False)
-    utm_campaign= Column(String(255))
-    utm_source= Column(String(255))
-    utm_medium= Column(String(255))
-    name= Column(String(255), nullable=False)
-    avatar= Column(String(255))  # Store image URL/path
-    phone_number= Column(String(20), unique=True)
-    industry= Column(String(100), nullable=True)
-    is_favorite= Column(Boolean, default=False)
-    thread_id= Column(String(100), unique=True, nullable=True)
-    created_at= Column(DateTime, default=datetime.now())
-    website_url= Column(String(255), unique=True)
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
+    utm_campaign = Column(String(255))
+    utm_source = Column(String(255))
+    utm_medium = Column(String(255))
+    name = Column(String(255), nullable=False)
+    avatar = Column(String(255))  # Store image URL/path
+    phone_number = Column(String(20), unique=True)
+    industry = Column(String(100), nullable=True)
+    is_favorite = Column(Boolean, default=False)
+    thread_id = Column(String(100), unique=True, nullable=True)
+    created_at = Column(DateTime, default=datetime.now())
+    website_url = Column(String(255), unique=True)
 
     # Relationships
-    organization= relationship("Organization")
-    tags= relationship("Tag", secondary=contact_tags, back_populates="contacts")
-    groups= relationship("Group", secondary=contact_groups, back_populates="contacts")
-    prompts= relationship("Prompt", back_populates="contact")
+    organization = relationship("Organization")
+    tags = relationship("Tag", secondary=contact_tags, back_populates="contacts")
+    groups = relationship("Group", secondary=contact_groups, back_populates="contacts")
+    prompts = relationship("Prompt", back_populates="contact")
 
 class Tag(Base):
     __tablename__= 'tags'
@@ -212,14 +212,16 @@ class Group(Base):
     contacts = relationship("Contact", secondary=contact_groups, back_populates="groups")
 
 class Prompt(Base):
-    __tablename__= 'prompts'
+    __tablename__ = 'prompts'
 
-    id= Column(Integer, primary_key=True)
-    thread_id= Column(String(100), ForeignKey('contacts.thread_id'), nullable=False)
-    input_text= Column(Text)
-    response_text= Column(Text)
-    response_image= Column(String(255))  # Store image URL/path
-    created_at= Column(DateTime, default=datetime.now())
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
+    contact_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)  # Foreign Key to Contact
+    input_text = Column(Text)
+    response_text = Column(Text)
+    response_image = Column(String(255))  # Store image URL/path
+    created_at = Column(DateTime, default=datetime.now())
 
-    # Relationship
-    contact= relationship("Contact", back_populates="prompts")
+    # Relationships
+    organization = relationship("Organization")
+    contact = relationship("Contact", back_populates="prompts")
