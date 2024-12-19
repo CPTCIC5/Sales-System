@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any
 import json
 from pydantic import BaseModel
+from schemas.organizations_schema import Organization
 
 class LeadQualificationModel(BaseModel):
     qualification_score: int = 0
@@ -11,6 +12,7 @@ class LeadQualificationModel(BaseModel):
     need_confirmed: bool = False
     timeline_confirmed: bool = False
     meeting_readiness: bool = False
+    detected_type: str = None  # "B2B", "B2C", or None
     
 class ContactModel(BaseModel):
     name: str 
@@ -67,7 +69,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 
-def chat_with_assistant(user_input: str, user: ContactModel, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
+def chat_with_assistant(user_input: str, user: ContactModel, organization: Organization, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
     # Evaluate meeting readiness before processing message
     meeting_ready = evaluate_meeting_readiness(user, user_input)
     
@@ -79,6 +81,9 @@ def chat_with_assistant(user_input: str, user: ContactModel, vspace_id= "vs_rjNK
     assistant_id = "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
     if user.thread_id is None:
+        # Select appropriate context template based on organization type
+        context = get_context_template(organization.business_model, user)
+        
         # Create a new thread if the lead doesn't have one
         thread = client.beta.threads.create(
             tool_resources={
@@ -91,63 +96,6 @@ def chat_with_assistant(user_input: str, user: ContactModel, vspace_id= "vs_rjNK
         print(f"Created new thread with ID: {thread.id}")
         
         # Add the context as the initial message with enhanced details
-        context = f"""
-        You're speaking with {user.name} from the {user.industry if user.industry else 'Not provided'} industry
-        Company Website: {user.website_url if user.website_url else 'Not provided'}
-        Contact Number: {user.phone_number}
-        Organization ID: {user.org_id}
-
-        Your Role:
-        - Act as a professional sales representative
-        - Build rapport and understand their business needs
-        - Keep messages concise and engaging (2-3 sentences max)
-        - Use friendly, professional language with occasional emojis
-        - Ask targeted questions about their business challenges
-        - Listen actively and show genuine interest
-        - Guide naturally through discovery → solution → value proposition
-        - Focus on understanding their pain points
-        - Never reveal you're AI or mention being an assistant
-        - Maintain a warm, consultative tone throughout
-
-        Key Objectives:
-        1. Understand their business needs
-        2. Identify pain points and challenges
-        3. Build trust through meaningful conversation
-        4. Guide towards scheduling a meeting when appropriate
-
-        
-        Lead Qualification Process:
-        1. Understand Budget:
-           - Ask about current spending on similar solutions
-           - Explore budget allocation for new solutions
-        
-        2. Verify Authority:
-           - Identify their role in decision-making
-           - Understand the buying process
-        
-        3. Confirm Need:
-           - Identify specific pain points
-           - Understand current solutions/processes
-           - Quantify the impact of their challenges
-        
-        4. Establish Timeline:
-           - Determine urgency of the need
-           - Understand their implementation timeline
-        
-        Meeting Link Sharing Criteria:
-        - Share meeting link ONLY when:
-            1. Lead shows clear interest
-            2. At least 3 qualification criteria are met
-            3. They specifically ask about next steps
-            4. You've identified concrete pain points
-        
-        Remember to:
-        - Keep track of qualification status
-        - Don't rush to share the meeting link
-        - Focus on value before pushing for a meeting
-        """
-        
-        # Send enhanced context for new threads
         message = client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
@@ -234,6 +182,71 @@ def evaluate_meeting_readiness(user: ContactModel, message_content: str) -> bool
     )
     
     return qualification.meeting_readiness
+
+def get_context_template(business_model: str, user: ContactModel) -> str:
+    base_context = f"""
+    You're speaking with {user.name}
+    Contact Number: {user.phone_number}
+    """
+    
+    if business_model == "B2B":
+        return base_context + """
+        Industry: {user.industry if user.industry else 'Not provided'}
+        Company Website: {user.website_url if user.website_url else 'Not provided'}
+        
+        Your Role:
+        - Act as a professional B2B sales representative
+        - Focus on business needs and pain points
+        [... rest of B2B specific instructions ...]
+        """
+    
+    elif business_model == "B2C":
+        return base_context + """
+        Your Role:
+        - Act as a friendly customer service representative
+        - Focus on individual needs and preferences
+        - Keep language simple and jargon-free
+        - Emphasize personal benefits
+        
+        Key Objectives:
+        1. Understand personal needs
+        2. Identify individual preferences
+        3. Build personal connection
+        4. Guide towards appropriate solution
+        
+        Qualification Process:
+        1. Understand Requirements:
+           - Ask about specific needs
+           - Explore usage scenarios
+        
+        2. Confirm Decision Making:
+           - Understand timeline
+           - Discuss budget expectations
+        
+        Meeting Link Sharing Criteria:
+        - Share meeting link when:
+            1. Customer shows clear interest
+            2. Has specific needs that require detailed discussion
+            3. Requests more information
+        """
+    
+    else:  # "BOTH"
+        return base_context + """
+        Your Role:
+        - Adapt your approach based on the conversation
+        - Start neutral and determine if speaking with business or individual
+        - Adjust language and focus accordingly
+        
+        Initial Assessment:
+        - Ask open-ended questions about their interest
+        - Listen for business or personal use indicators
+        - Adapt qualification process based on response
+        
+        Key Objectives:
+        1. Identify if business or personal use
+        2. Adjust communication style accordingly
+        3. Follow appropriate qualification process
+        """
 
 # Main interaction loop
 if __name__ == "__main__":

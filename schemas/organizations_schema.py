@@ -16,6 +16,7 @@ class OrganizationCreateModel(BaseModel):
     business_webURL: str
     industry_type: str
     vspace_id: str= None
+    business_model: str = Field(..., pattern="^(B2B|B2C|BOTH)$")
 
     @model_validator(mode="before")
     @classmethod

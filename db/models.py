@@ -85,6 +85,7 @@ class Organization(Base):
     industry_type= Column(String(100), nullable=True)
     vspace_id= Column(String(100), unique=True, nullable=True)
     created_at= Column(DateTime, default=datetime.now())
+    business_model = Column(String(10), nullable=False)  # "B2B", "B2C", or "BOTH"
 
     # Relationships
     root_user= relationship("User", foreign_keys=[root_user_id])
