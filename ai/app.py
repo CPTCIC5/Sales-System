@@ -2,7 +2,15 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any
 import json
-from schemas.contacts_schema import ContactModel
+from pydantic import BaseModel
+
+class ContactModel(BaseModel):
+    name: str 
+    org_id: int
+    phone_number: str
+    website_url: str = None
+    industry: str 
+    thread_id: str= None
 
 load_dotenv()
 
