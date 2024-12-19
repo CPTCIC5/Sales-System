@@ -17,7 +17,7 @@ class ContactModel(BaseModel):
     org_id: int
     phone_number: str
     website_url: str = None
-    industry: str 
+    industry: str = None
     thread_id: str = None
     qualification: LeadQualificationModel = LeadQualificationModel()
 
@@ -92,7 +92,7 @@ def chat_with_assistant(user_input: str, user: ContactModel, vspace_id= "vs_rjNK
         
         # Add the context as the initial message with enhanced details
         context = f"""
-        You're speaking with {user.name} from the {user.industry} industry
+        You're speaking with {user.name} from the {user.industry if user.industry else 'Not provided'} industry
         Company Website: {user.website_url if user.website_url else 'Not provided'}
         Contact Number: {user.phone_number}
         Organization ID: {user.org_id}
@@ -242,11 +242,9 @@ if __name__ == "__main__":
     
     # Create a test lead for the main loop
     test_lead = ContactModel(
-        name="Dany Alvarez",
+        name="Sarthak Jain",
         org_id=1,
-        phone_number="+1234567890",
-        website_url="https://danyalvarez.co",
-        industry="ecommerce"
+        phone_number="+1234567890"
     )
     
     while True:
