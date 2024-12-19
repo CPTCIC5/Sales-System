@@ -1,6 +1,6 @@
 from openai import OpenAI
 from dotenv import load_dotenv
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
 from schemas.organizations_schema import Organization
@@ -152,18 +152,72 @@ def chat_with_assistant(user_input: str, user: ContactModel, organization: Organ
         print(f"Error in chat_with_assistant: {str(e)}")
         return "I apologize, but I'm experiencing technical difficulties. Please try again in a moment."
 
+def analyze_qualification_criteria(message_content: str) -> Dict[str, Any]:
+    """Analyzes message content to detect BANT criteria and other qualification signals"""
+    
+    function_json = {
+        "name": "analyze_qualification",
+        "description": "Analyze message content for sales qualification criteria",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "budget_confirmed": {
+                    "type": "boolean",
+                    "description": "Message indicates budget discussion or financial capacity"
+                },
+                "authority_confirmed": {
+                    "type": "boolean",
+                    "description": "Message indicates decision-making authority or involvement"
+                },
+                "need_confirmed": {
+                    "type": "boolean",
+                    "description": "Message indicates clear business need or pain points"
+                },
+                "timeline_confirmed": {
+                    "type": "boolean",
+                    "description": "Message indicates implementation timeline or urgency"
+                },
+                "reasoning": {
+                    "type": "object",
+                    "properties": {
+                        "budget": {"type": "string"},
+                        "authority": {"type": "string"},
+                        "need": {"type": "string"},
+                        "timeline": {"type": "string"}
+                    },
+                    "description": "Reasoning for each criterion detection"
+                }
+            },
+            "required": ["budget_confirmed", "authority_confirmed", "need_confirmed", "timeline_confirmed", "reasoning"]
+        }
+    }
+
+    messages = [
+        {"role": "system", "content": "You are a sales qualification expert. Analyze the message for BANT criteria."},
+        {"role": "user", "content": message_content}
+    ]
+
+    response = client.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=messages,
+        functions=[function_json],
+        function_call={"name": "analyze_qualification"}
+    )
+
+    result = json.loads(response.choices[0].message.function_call.arguments)
+    return result
+
 def evaluate_meeting_readiness(user: ContactModel, message_content: str) -> bool:
     qualification = user.qualification
     
-    # Update qualification based on message content
-    if "budget" in message_content.lower():
-        qualification.budget_confirmed = True
-    if "decision" in message_content.lower():
-        qualification.authority_confirmed = True
-    if "problem" in message_content.lower() or "challenge" in message_content.lower():
-        qualification.need_confirmed = True
-    if "timeline" in message_content.lower() or "when" in message_content.lower():
-        qualification.timeline_confirmed = True
+    # Use AI to analyze the message content
+    analysis = analyze_qualification_criteria(message_content)
+    
+    # Update qualification based on AI analysis
+    qualification.budget_confirmed = qualification.budget_confirmed or analysis['budget_confirmed']
+    qualification.authority_confirmed = qualification.authority_confirmed or analysis['authority_confirmed']
+    qualification.need_confirmed = qualification.need_confirmed or analysis['need_confirmed']
+    qualification.timeline_confirmed = qualification.timeline_confirmed or analysis['timeline_confirmed']
     
     # Calculate qualification score
     score = sum([
@@ -175,7 +229,7 @@ def evaluate_meeting_readiness(user: ContactModel, message_content: str) -> bool
     
     qualification.qualification_score = score
     
-    # Determine meeting readiness
+    # Determine meeting readiness - require need confirmation and at least 2 other criteria
     qualification.meeting_readiness = (
         score >= 75 and  # At least 3 criteria met
         qualification.need_confirmed  # Must have confirmed need
