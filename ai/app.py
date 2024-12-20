@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
-from schemas.organizations_schema import Organization
 
 class LeadQualificationModel(BaseModel):
     qualification_score: int = 0
@@ -69,7 +68,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 
-def chat_with_assistant(user_input: str, user: ContactModel, organization: Organization, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
+def chat_with_assistant(user_input: str, user: ContactModel, organization= {"business_model": "B2B"}, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
     # Evaluate meeting readiness before processing message
     meeting_ready = evaluate_meeting_readiness(user, user_input)
     
@@ -82,7 +81,8 @@ def chat_with_assistant(user_input: str, user: ContactModel, organization: Organ
 
     if user.thread_id is None:
         # Select appropriate context template based on organization type
-        context = get_context_template(organization.business_model, user)
+        context = get_context_template(organization['business_model'], user)
+        print(context)
         
         # Create a new thread if the lead doesn't have one
         thread = client.beta.threads.create(
@@ -198,7 +198,7 @@ def analyze_qualification_criteria(message_content: str) -> Dict[str, Any]:
     ]
 
     response = client.chat.completions.create(
-        model="gpt-4-turbo-preview",
+        model="gpt-4o",
         messages=messages,
         functions=[function_json],
         function_call={"name": "analyze_qualification"}
