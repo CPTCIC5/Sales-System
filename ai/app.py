@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
+from schemas.contacts_schema import ContactModel
 
 class LeadQualificationModel(BaseModel):
     qualification_score: int = 0
@@ -13,13 +14,8 @@ class LeadQualificationModel(BaseModel):
     meeting_readiness: bool = False
     detected_type: str = None  # "B2B", "B2C", or None
     
-class ContactModel(BaseModel):
-    name: str 
-    org_id: int
-    phone_number: str
-    website_url: str = None
-    industry: str = None
-    thread_id: str = None
+class ContactChatModel(BaseModel):
+    contact_model: ContactModel
     qualification: LeadQualificationModel = LeadQualificationModel()
 
 load_dotenv()
@@ -68,7 +64,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 
-def chat_with_assistant(user_input: str, user: ContactModel, organization= {"business_model": "B2B"}, vspace_id= "vs_rjNKWuoxeD0ruMxAhsuBTor2"):
+def chat_with_assistant(user_input: str, user: ContactChatModel, organization= {"business_model": "B2B"}):
     # Evaluate meeting readiness before processing message
     meeting_ready = evaluate_meeting_readiness(user, user_input)
     
@@ -76,31 +72,17 @@ def chat_with_assistant(user_input: str, user: ContactModel, organization= {"bus
         # Add meeting suggestion to context
         user_input += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
     
-    print(f"Processing message from {user.name}")
-    assistant_id = "asst_P22hVD8Pa82ylwFv6tuTU6Co"
+    print(f"Processing message from {user.contact_model.name}")
+    assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
-    if user.thread_id is None:
-        # Select appropriate context template based on organization type
-        context = get_context_template(organization['business_model'], user)
-        print(context)
-        
-        # Create a new thread if the lead doesn't have one
-        thread = client.beta.threads.create(
-            tool_resources={
-                "file_search": {
-                    "vector_store_ids": [vspace_id]
-                }
-            }
-        )
-        user.thread_id = thread.id
-        print(f"Created new thread with ID: {thread.id}")
-        
-        # Add the context as the initial message with enhanced details
-        message = client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=context,
-        )
+    context = get_context_template(organization['business_model'], user)
+    print(context)
+    
+    message = client.beta.threads.messages.create(
+        thread_id=user.contact_model.thread_id,
+        role="user",
+        content=context,
+    )
     
     # Add the user message
     message = client.beta.threads.messages.create(
@@ -207,7 +189,7 @@ def analyze_qualification_criteria(message_content: str) -> Dict[str, Any]:
     result = json.loads(response.choices[0].message.function_call.arguments)
     return result
 
-def evaluate_meeting_readiness(user: ContactModel, message_content: str) -> bool:
+def evaluate_meeting_readiness(user: ContactChatModel, message_content: str) -> bool:
     qualification = user.qualification
     
     # Use AI to analyze the message content
@@ -237,7 +219,7 @@ def evaluate_meeting_readiness(user: ContactModel, message_content: str) -> bool
     
     return qualification.meeting_readiness
 
-def get_context_template(business_model: str, user: ContactModel) -> str:
+def get_context_template(business_model: str, user: ContactChatModel) -> str:
     base_context = f"""
     You're speaking with {user.name}
     Contact Number: {user.phone_number}
