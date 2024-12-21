@@ -131,7 +131,19 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_
                         order="desc",
                         limit=1
                     )
-                    return messages.data[0].content[0].text.value
+                    assistant_response = messages.data[0].content[0].text.value
+
+                    # Store both the prompt and response in database
+                    new_prompt = Prompt(
+                        organization_id=organization.id,
+                        contact_id=prospect.id,
+                        input_text=user_input.input_text,
+                        output_text=assistant_response
+                    )
+                    db.add(new_prompt)
+                    db.commit()
+
+                    return assistant_response
                 
                 elif run.status == "requires_action":
                     tool_outputs = handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
