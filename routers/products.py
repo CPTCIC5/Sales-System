@@ -63,10 +63,10 @@ async def create_product(
         title=data.title,
         description=data.desc,
         image=data.image,
-        product_type=data.product_type,
         category_id=data.category_id,
         price_per_quantity=data.price_per_quantity,
-        is_available=data.is_available
+        is_available=data.is_available,
+        currency= data.currency
     )
     
     db.add(new_product)
@@ -119,7 +119,6 @@ async def update_product(
     product.title = data.title
     product.description = data.desc
     product.image = data.image
-    product.product_type = data.product_type
     product.category_id = data.category_id
     product.price_per_quantity = data.price_per_quantity
     product.is_available = data.is_available

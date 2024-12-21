@@ -119,9 +119,9 @@ class Product(Base):
     title= Column(String(255), nullable=False)
     description= Column(Text)
     image= Column(String(255))
-    product_type= Column(Integer)
     category_id= Column(Integer, ForeignKey('categories.id'))
     price_per_quantity= Column(Float)
+    currency= Column(String(50), nullable=False) 
     is_available= Column(Boolean, default=True)
     created_at= Column(DateTime, default=datetime.now())
     last_updated= Column(DateTime, default=datetime.now(), onupdate=datetime.now())
@@ -139,6 +139,7 @@ class OrganizationFileSystem(Base):
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey('organizations.id'), nullable=False, unique=True)
     api= Column(String(500), nullable=True)
+    api_key= Column(String(500), nullable=True)
 
     # Relationships
     products = relationship("Product", back_populates="filesystem")

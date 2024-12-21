@@ -40,6 +40,7 @@ class OrganizationKeysModel(BaseModel):
 
 class OrganizationFileSystemUpdate(BaseModel):
     api: str= None
+    api_key: str= None
 
 class OrganizationFiles(BaseModel):
     filesystem_id: int

@@ -88,7 +88,7 @@ async def delete_user(current_user: User = Depends(get_current_user), db: Sessio
     db.commit()
     return JSONResponse({'detail': "hmm deleted"}, status_code=status.HTTP_204_NO_CONTENT)
 
-@router.patch('/edit-user/')
+@router.patch('/edit-user')
 async def update_user(data: UserUpdateModel, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # First check if user exists
     my_user = db.query(User).filter(User.id == current_user.id).first()
