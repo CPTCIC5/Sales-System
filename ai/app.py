@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from db.models import get_db
 from utils.auth import get_current_user
 from sqlalchemy.orm import Session
-from db.models import User, Organization,Prompt,Contact
+from db.models import User, Organization, Prompt, Contact
 from openai import OpenAI
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
-from schemas.contacts_schema import PrompCreatetModel
+from schemas.contacts_schema import PromptCreateModel
 
 
 router= APIRouter(
@@ -70,81 +70,101 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 @router.post('/create/{contact_id}')
-def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int,  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    prospect= db.query(Contact).filter(Contact.id == contact_id).first()
-    organization= db.query(Organization).filter(Organization.root_user == current_user).first()
-    print(organization.business_model)
- 
-    # Evaluate meeting readiness before processing message
-    meeting_ready = evaluate_meeting_readiness(qualification, user_input.input_text)
-    print(meeting_ready,' \n \n')
-    if meeting_ready:
-        # Add meeting suggestion to context
-        user_input.input_text += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
-    
-    print(f"Processing message from {prospect.name}")
-    assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
-
-    has_no_prompts = db.query(Prompt).filter(Prompt.contact_id == prospect.id).count() == 0
-    if has_no_prompts:
-        print('efewewfewf')
-        context = get_context_template(organization.business_model, user.contact_model)
+def chat_with_assistant(user_input: PromptCreateModel, contact_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        prospect = db.query(Contact).filter(Contact.id == contact_id).first()
+        if not prospect:
+            raise HTTPException(status_code=404, detail="Contact not found")
         
+        organization = db.query(Organization).filter(Organization.root_user == current_user).first()
+        if not organization:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        # Create qualification model instance
+        qualification = LeadQualificationModel()
+        
+        # Evaluate meeting readiness before processing message
+        meeting_ready = evaluate_meeting_readiness(qualification, user_input.input_text)
+        if meeting_ready:
+            user_input.input_text += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
+
+        print(f"Processing message from {prospect.name}")
+        assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
+
+        has_no_prompts = db.query(Prompt).filter(Prompt.contact_id == prospect.id).count() == 0
+        if has_no_prompts:
+            print('efewewfewf')
+            context = get_context_template(organization.business_model, prospect)
+            
+            message = client.beta.threads.messages.create(
+                thread_id=prospect.thread_id,
+                role="user",
+                content=context,
+            )
+        
+        # Add the user message
         message = client.beta.threads.messages.create(
             thread_id=prospect.thread_id,
             role="user",
-            content=context,
-        )
-    
-    # Add the user message
-    message = client.beta.threads.messages.create(
-        thread_id=prospect.thread_id,
-        role="user",
-        content=user_input.input_text,
-    )
-
-    # Run the assistant with error handling
-    try:
-        run = client.beta.threads.runs.create(
-            thread_id=prospect.thread_id,
-            assistant_id=assistant_id
+            content=user_input.input_text,
         )
 
-        # Poll for completion or handle required actions
-        while True:
-            run = client.beta.threads.runs.retrieve(
+        # Run the assistant with error handling
+        try:
+            run = client.beta.threads.runs.create(
                 thread_id=prospect.thread_id,
-                run_id=run.id
+                assistant_id=assistant_id
             )
 
-            if run.status == "completed":
-                # Get the assistant's response
-                messages = client.beta.threads.messages.list(
+            # Poll for completion or handle required actions
+            while True:
+                run = client.beta.threads.runs.retrieve(
                     thread_id=prospect.thread_id,
-                    order="desc",
-                    limit=1
-                )
-                return messages.data[0].content[0].text.value
-            
-            elif run.status == "requires_action":
-                tool_outputs = handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
-                run = client.beta.threads.runs.submit_tool_outputs(
-                    thread_id=prospect.thread_id,
-                    run_id=run.id,
-                    tool_outputs=tool_outputs
+                    run_id=run.id
                 )
 
-            elif run.status in ["failed", "cancelled", "expired"]:
-                print(f"Run failed with status: {run.status}")
-                return "I apologize, but I'm having trouble processing your request. Could you please rephrase that?"
+                if run.status == "completed":
+                    # Get the assistant's response
+                    messages = client.beta.threads.messages.list(
+                        thread_id=prospect.thread_id,
+                        order="desc",
+                        limit=1
+                    )
+                    return messages.data[0].content[0].text.value
                 
-            # Wait before polling again with exponential backoff
-            import time
-            time.sleep(1)
+                elif run.status == "requires_action":
+                    tool_outputs = handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
+                    run = client.beta.threads.runs.submit_tool_outputs(
+                        thread_id=prospect.thread_id,
+                        run_id=run.id,
+                        tool_outputs=tool_outputs
+                    )
 
+                elif run.status in ["failed", "cancelled", "expired"]:
+                    print(f"Run failed with status: {run.status}")
+                    return "I apologize, but I'm having trouble processing your request. Could you please rephrase that?"
+                    
+                # Wait before polling again with exponential backoff
+                import time
+                time.sleep(1)
+
+        except Exception as e:
+            print(f"Error in chat_with_assistant: {str(e)}")
+            return "I apologize, but I'm experiencing technical difficulties. Please try again in a moment."
+
+        # Store the prompt in database
+        new_prompt = Prompt(
+            organization_id=organization.id,
+            contact_id=prospect.id,
+            input_text=user_input.input_text
+        )
+        db.add(new_prompt)
+        db.commit()
+        
     except Exception as e:
-        print(f"Error in chat_with_assistant: {str(e)}")
-        return "I apologize, but I'm experiencing technical difficulties. Please try again in a moment."
+        db.rollback()
+        print(f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 def analyze_qualification_criteria(message_content: str) -> Dict[str, Any]:
     """Analyzes message content to detect BANT criteria and other qualification signals"""
@@ -231,16 +251,17 @@ def evaluate_meeting_readiness(user: LeadQualificationModel, message_content: st
     
     return qualification.meeting_readiness
 
-def get_context_template(contact_user) -> str:
+def get_context_template(business_model: str, contact: Contact) -> str:
+    """Generate context template based on business model and contact information"""
     base_context = f"""
-    You're speaking with {contact_user.name}
-    Contact Number: {user.phone_number}
+    You're speaking with {contact.name}
+    Contact Number: {contact.phone_number if contact.phone_number else 'Not provided'}
     """
     
     if business_model == "B2B":
-        return base_context + """
-        Industry: {user.industry if user.industry else 'Not provided'}
-        Company Website: {user.website_url if user.website_url else 'Not provided'}
+        return base_context + f"""
+        Industry: {contact.industry if contact.industry else 'Not provided'}
+        Company Website: {contact.website_url if contact.website_url else 'Not provided'}
         
         Your Role:
         - Act as a professional B2B sales representative
