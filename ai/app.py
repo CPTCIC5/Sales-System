@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
-from schemas.contacts_schema import PromptCreateModel
+from schemas.contacts_schema import PrompCreatetModel
 
 
 router= APIRouter(
@@ -70,7 +70,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 @router.post('/create/{contact_id}')
-def chat_with_assistant(user_input: PromptCreateModel, contact_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         prospect = db.query(Contact).filter(Contact.id == contact_id).first()
         if not prospect:
@@ -92,6 +92,7 @@ def chat_with_assistant(user_input: PromptCreateModel, contact_id: int, current_
         assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
         has_no_prompts = db.query(Prompt).filter(Prompt.contact_id == prospect.id).count() == 0
+        print(has_no_prompts)
         if has_no_prompts:
             print('efewewfewf')
             context = get_context_template(organization.business_model, prospect)

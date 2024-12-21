@@ -18,7 +18,8 @@ async def create_org(data: OrganizationCreateModel, db: Session = Depends(get_db
             business_name= data.business_name,
             business_webURL= data.business_webURL,
             industry_type= data.industry_type,
-            vspace_id= data.vspace_id
+            vspace_id= data.vspace_id,
+            business_model= data.business_model
         )
         db.add(new_org)
         try:
