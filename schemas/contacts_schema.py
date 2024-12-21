@@ -53,8 +53,8 @@ class GroupUpdateModel(BaseModel):
 
 class PrompCreatetModel(BaseModel):
     input_text: str
-    response_text: str
-    response_image: str
+    response_text: str= None
+    response_image: str= None
 
 
 class PromptDataDetailModel(BaseModel):

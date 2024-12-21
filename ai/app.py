@@ -1,9 +1,19 @@
+from fastapi import APIRouter, Depends
+from db.models import get_db
+from utils.auth import get_current_user
+from sqlalchemy.orm import Session
+from db.models import User, Organization,Prompt,Contact
 from openai import OpenAI
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
-from schemas.contacts_schema import ContactModel
+from schemas.contacts_schema import PrompCreatetModel
+
+
+router= APIRouter(
+    prefix="/api/prompt"
+)
 
 class LeadQualificationModel(BaseModel):
     qualification_score: int = 0
@@ -14,12 +24,8 @@ class LeadQualificationModel(BaseModel):
     meeting_readiness: bool = False
     detected_type: str = None  # "B2B", "B2C", or None
     
-class ContactChatModel(BaseModel):
-    contact_model: ContactModel
-    qualification: LeadQualificationModel = LeadQualificationModel()
 
 load_dotenv()
-
 client= OpenAI()
 
 # Store the assistant ID for future use
@@ -63,52 +69,58 @@ def handle_tool_calls(tool_calls):
     
     return tool_outputs
 
-
-def chat_with_assistant(user_input: str, user: ContactChatModel, organization= {"business_model": "B2B"}):
+@router.post('/create/{contact_id}')
+def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int,  current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    prospect= db.query(Contact).filter(Contact.id == contact_id).first()
+    organization= db.query(Organization).filter(Organization.root_user == current_user).first()
+    print(organization.business_model)
+ 
     # Evaluate meeting readiness before processing message
-    meeting_ready = evaluate_meeting_readiness(user, user_input)
-    
+    meeting_ready = evaluate_meeting_readiness(qualification, user_input.input_text)
+    print(meeting_ready,' \n \n')
     if meeting_ready:
         # Add meeting suggestion to context
-        user_input += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
+        user_input.input_text += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
     
-    print(f"Processing message from {user.contact_model.name}")
+    print(f"Processing message from {prospect.name}")
     assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
 
-    context = get_context_template(organization['business_model'], user)
-    print(context)
-    
-    message = client.beta.threads.messages.create(
-        thread_id=user.contact_model.thread_id,
-        role="user",
-        content=context,
-    )
+    has_no_prompts = db.query(Prompt).filter(Prompt.contact_id == prospect.id).count() == 0
+    if has_no_prompts:
+        print('efewewfewf')
+        context = get_context_template(organization.business_model, user.contact_model)
+        
+        message = client.beta.threads.messages.create(
+            thread_id=prospect.thread_id,
+            role="user",
+            content=context,
+        )
     
     # Add the user message
     message = client.beta.threads.messages.create(
-        thread_id=user.thread_id,
+        thread_id=prospect.thread_id,
         role="user",
-        content=user_input,
+        content=user_input.input_text,
     )
 
     # Run the assistant with error handling
     try:
         run = client.beta.threads.runs.create(
-            thread_id=user.thread_id,
+            thread_id=prospect.thread_id,
             assistant_id=assistant_id
         )
 
         # Poll for completion or handle required actions
         while True:
             run = client.beta.threads.runs.retrieve(
-                thread_id=user.thread_id,
+                thread_id=prospect.thread_id,
                 run_id=run.id
             )
 
             if run.status == "completed":
                 # Get the assistant's response
                 messages = client.beta.threads.messages.list(
-                    thread_id=user.thread_id,
+                    thread_id=prospect.thread_id,
                     order="desc",
                     limit=1
                 )
@@ -117,7 +129,7 @@ def chat_with_assistant(user_input: str, user: ContactChatModel, organization= {
             elif run.status == "requires_action":
                 tool_outputs = handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
                 run = client.beta.threads.runs.submit_tool_outputs(
-                    thread_id=user.thread_id,
+                    thread_id=prospect.thread_id,
                     run_id=run.id,
                     tool_outputs=tool_outputs
                 )
@@ -189,8 +201,8 @@ def analyze_qualification_criteria(message_content: str) -> Dict[str, Any]:
     result = json.loads(response.choices[0].message.function_call.arguments)
     return result
 
-def evaluate_meeting_readiness(user: ContactChatModel, message_content: str) -> bool:
-    qualification = user.qualification
+def evaluate_meeting_readiness(user: LeadQualificationModel, message_content: str) -> bool:
+    qualification = user
     
     # Use AI to analyze the message content
     analysis = analyze_qualification_criteria(message_content)
@@ -219,9 +231,9 @@ def evaluate_meeting_readiness(user: ContactChatModel, message_content: str) -> 
     
     return qualification.meeting_readiness
 
-def get_context_template(business_model: str, user: ContactChatModel) -> str:
+def get_context_template(contact_user) -> str:
     base_context = f"""
-    You're speaking with {user.name}
+    You're speaking with {contact_user.name}
     Contact Number: {user.phone_number}
     """
     
@@ -283,23 +295,3 @@ def get_context_template(business_model: str, user: ContactChatModel) -> str:
         2. Adjust communication style accordingly
         3. Follow appropriate qualification process
         """
-
-# Main interaction loop
-if __name__ == "__main__":
-    print("Sales Assistant (Type 'quit' to exit)")
-    print("---------------------------------------------------")
-    
-    # Create a test lead for the main loop
-    test_lead = ContactModel(
-        name="Sarthak Jain",
-        org_id=1,
-        phone_number="+1234567890"
-    )
-    
-    while True:
-        user_input = input("\nYou: ")
-        if user_input.lower() == 'quit':
-            break
-            
-        response = chat_with_assistant(user_input, test_lead)
-        print(f"\nAssistant: {response}")
