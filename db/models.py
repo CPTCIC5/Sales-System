@@ -222,7 +222,6 @@ class Prompt(Base):
     response_text = Column(Text)
     response_image = Column(String(255))  # Store image URL/path
     created_at = Column(DateTime, default=datetime.now())
-    output_text = Column(String)  # Add this line if it doesn't exist
 
     # Relationships
     organization = relationship("Organization")

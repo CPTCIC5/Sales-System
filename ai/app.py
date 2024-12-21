@@ -138,7 +138,7 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_
                         organization_id=organization.id,
                         contact_id=prospect.id,
                         input_text=user_input.input_text,
-                        output_text=assistant_response
+                        response_text=user_input.response_text
                     )
                     db.add(new_prompt)
                     db.commit()
@@ -164,15 +164,6 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_
         except Exception as e:
             print(f"Error in chat_with_assistant: {str(e)}")
             return "I apologize, but I'm experiencing technical difficulties. Please try again in a moment."
-
-        # Store the prompt in database
-        new_prompt = Prompt(
-            organization_id=organization.id,
-            contact_id=prospect.id,
-            input_text=user_input.input_text
-        )
-        db.add(new_prompt)
-        db.commit()
         
     except Exception as e:
         db.rollback()
