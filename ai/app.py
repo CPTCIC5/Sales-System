@@ -138,7 +138,7 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_
                         organization_id=organization.id,
                         contact_id=prospect.id,
                         input_text=user_input.input_text,
-                        response_text=user_input.response_text
+                        response_text=assistant_response
                     )
                     db.add(new_prompt)
                     db.commit()

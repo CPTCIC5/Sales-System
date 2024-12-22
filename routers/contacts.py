@@ -189,12 +189,12 @@ async def delete_contact(
     )
 
 
+####
 @router.get('/groups')
 async def list_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    print('wfewefew')
-    groups= db.query(Group).all()
-    print(groups)
-    return groups
+    #groups= db.query(Group).all()
+    #print(groups)
+    return JSONResponse(status_code=status.HTTP_200_OK)
 
 
 # Tag endpoints
