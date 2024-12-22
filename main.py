@@ -4,6 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from utils.auth import SECRET_KEY
 from routers import users, contacts, organizations, products
 from ai.app import router
+from wp import webhook
 from db.models import engine, Base
 
 app = FastAPI()
@@ -34,6 +35,7 @@ app.include_router(contacts.router)
 app.include_router(organizations.router)
 app.include_router(products.router)
 app.include_router(router)
+app.include_router(webhook.router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app)

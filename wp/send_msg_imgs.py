@@ -8,10 +8,9 @@ load_dotenv()
 token = os.getenv("ACCESS_TOKEN")
 version = os.getenv("VERSION")
 number_id = os.getenv("PHONE_NUMBER_ID")
-user = os.getenv("USER_NUMBER")
  
  
-def send_txt_msg():
+def send_txt_msg(user_contact_number: str):
     url = f"https://graph.facebook.com/{version}/{number_id}/messages"
  
     headers = {
@@ -20,9 +19,9 @@ def send_txt_msg():
     }
  
     data = {
-        "messaging_product": "whatsapp",
+        "messaging_product": "whatsapp",    
         "recipient_type": "individual",
-        "to": user,
+        "to": user_contact_number,
         "type": "text",
  
         "text": {
@@ -37,7 +36,7 @@ re = send_txt_msg()
 print(re.status_code)
 print(re.json())
  
-def send_img():
+def send_img(user_contact_number: str): #JPG.JPEG,PNG
     url = f"https://graph.facebook.com/{version}/{number_id}/messages"
  
     headers = {
@@ -48,13 +47,12 @@ def send_img():
     data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
-        "to": user,
+        "to": user_contact_number,
         "type": "image",
  
         "image": {
- 
-            "link": "https://i.imgur.com/N7Mlq38.jpeg", # use links of images to send
-            "caption": "Testing images" 
+            "link": "https://i.imgur.com/N7Mlq38.jpeg", # use links of images to send ###
+            "caption": "Testing images"  ###
         }
     }
  
