@@ -179,3 +179,4 @@ cython_debug/
 *.db
 __pycache__/
 *.pyc
+.vercel
