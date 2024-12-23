@@ -10,7 +10,7 @@ version = os.getenv("VERSION")
 number_id = os.getenv("PHONE_NUMBER_ID")
  
  
-def send_txt_msg(user_contact_number: str):
+def send_txt_msg(user_contact_number: str, output: str):
     url = f"https://graph.facebook.com/{version}/{number_id}/messages"
  
     headers = {
@@ -25,16 +25,14 @@ def send_txt_msg(user_contact_number: str):
         "type": "text",
  
         "text": {
-            "body": "hey, testing the text msgs https://google.com " # use body to send msgs 
+            "body": output # use body to send msgs 
         }
     }
- 
+    print(user_contact_number)
     response = requests.post(url=url, headers=headers, json=data)
+    print(response.json())
     return response
  
-re = send_txt_msg()
-print(re.status_code)
-print(re.json())
  
 def send_img(user_contact_number: str): #JPG.JPEG,PNG
     url = f"https://graph.facebook.com/{version}/{number_id}/messages"
@@ -59,6 +57,3 @@ def send_img(user_contact_number: str): #JPG.JPEG,PNG
     response = requests.post(url=url, headers=headers, json=data)
     return response
  
-img_re = send_img()
-print(img_re.status_code)
-print(img_re.json())
