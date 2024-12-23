@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Request,HTTPException
+from fastapi import APIRouter,Request,HTTPException,Response
 from fastapi.responses import PlainTextResponse
 import os
 from dotenv import load_dotenv
@@ -72,6 +72,6 @@ async def verify_webhook(request: Request):
     # Check the mode and token sent are correct
     if mode == "subscribe" and token == VERIFY_TOKEN:
         print("Webhook verified successfully!")
-        return challenge
+        return PlainTextResponse(challenge)
     else:
         raise HTTPException(status_code=403, detail="Verification token mismatch.")
