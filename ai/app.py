@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel
 from schemas.contacts_schema import PrompCreatetModel
 from wp.send_msg_imgs import send_txt_msg
+from utils.auth import get_organization_products
 
 router= APIRouter(
     prefix="/api/prompt"
@@ -34,14 +35,30 @@ def get_meeting_link():
     return "https://outlook.office.com/bookwithme/user/8ef8abcb1a04480ab07f1f7165fbfd2f%40salesgenio.ai?anonymous&isanonymous=true"
 
 
-def safe_execute_tool(func_name: str, arguments: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def safe_execute_tool(func_name: str, arguments: Dict[str, Any], org_id: int = None) -> Optional[Dict[str, Any]]:
     """
     Safely execute tool functions with error handling and logging
     """
     try:
         if func_name == "get_meeting_link":
             result = get_meeting_link()
-        
+        elif func_name == "get_organization_products":
+            # Use the org_id passed from the route
+            if not org_id:
+                return {"error": "org_id is required"}
+            # Get DB session
+            db = next(get_db())
+            result = get_organization_products(org_id=org_id, db=db)
+            # Convert SQLAlchemy objects to dictionaries for JSON serialization
+            if isinstance(result, list):
+                result = [
+                    {
+                        "products": [{"id": p.id, "title": p.title, "description": p.description, 
+                                    "price": p.price_per_quantity, "currency": p.currency} 
+                                   for p in result[0]],
+                        "external_data": result[1] if len(result) > 1 else None
+                    }
+                ]
         return result
     except Exception as e:
         return {"error": str(e)}
@@ -114,17 +131,47 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
         try:
             run = client.beta.threads.runs.create(
                 thread_id=prospect.thread_id,
-                assistant_id=assistant_id
+                assistant_id=assistant_id,
+                tools=[
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_organization_products",
+                            "description": "Get products for the current organization",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {},  # No parameters needed since we use route org_id
+                                "required": []
+                            }
+                        }
+                    }
+                ]
             )
 
-            # Poll for completion or handle required actions
             while True:
                 run = client.beta.threads.runs.retrieve(
                     thread_id=prospect.thread_id,
                     run_id=run.id
                 )
 
-                if run.status == "completed":
+                if run.status == "requires_action":
+                    tool_outputs = []
+                    for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                        function_name = tool_call.function.name
+                        # Pass org_id from route parameter
+                        result = safe_execute_tool(function_name, {}, org_id=org_id)
+                        tool_outputs.append({
+                            "tool_call_id": tool_call.id,
+                            "output": json.dumps(result)
+                        })
+                    
+                    run = client.beta.threads.runs.submit_tool_outputs(
+                        thread_id=prospect.thread_id,
+                        run_id=run.id,
+                        tool_outputs=tool_outputs
+                    )
+
+                elif run.status == "completed":
                     # Get the assistant's response
                     messages = client.beta.threads.messages.list(
                         thread_id=prospect.thread_id,
@@ -145,14 +192,6 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
 
                     return assistant_response
                 
-                elif run.status == "requires_action":
-                    tool_outputs = handle_tool_calls(run.required_action.submit_tool_outputs.tool_calls)
-                    run = client.beta.threads.runs.submit_tool_outputs(
-                        thread_id=prospect.thread_id,
-                        run_id=run.id,
-                        tool_outputs=tool_outputs
-                    )
-
                 elif run.status in ["failed", "cancelled", "expired"]:
                     print(f"Run failed with status: {run.status}")
                     return "I apologize, but I'm having trouble processing your request. Could you please rephrase that?"
