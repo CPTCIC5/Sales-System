@@ -186,7 +186,7 @@ class Contact(Base):
     is_favorite = Column(Boolean, default=False)
     thread_id = Column(String(100), unique=True, nullable=True)
     created_at = Column(DateTime, default=datetime.now())
-    website_url = Column(String(255), unique=True)
+    website_url = Column(String(255))
 
     # Relationships
     organization = relationship("Organization")
@@ -222,7 +222,6 @@ class Prompt(Base):
     contact_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)  # Foreign Key to Contact
     input_text = Column(Text)
     response_text = Column(Text)
-    response_image = Column(String(255))  # Store image URL/path
     created_at = Column(DateTime, default=datetime.now())
 
     # Relationships
