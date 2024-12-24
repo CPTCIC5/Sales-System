@@ -89,17 +89,17 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
             user_input.input_text += "\n\nNote: Lead is qualified for meeting. You can share meeting link if appropriate."
 
         print(f"Processing message from {prospect.name}")
-        assistant_id= "asst_P22hVD8Pa82ylwFv6tuTU6Co"
+        assistant_id= organization.assistant_id
 
         has_no_prompts = db.query(Prompt).filter(Prompt.contact_id == prospect.id).count() == 0
         print(has_no_prompts)
         if has_no_prompts:
             print('efewewfewf')
-            context = get_context_template(organization.business_model, prospect)
+            context = get_context_template(prospect)
             
             message = client.beta.threads.messages.create(
                 thread_id=prospect.thread_id,
-                role="user",
+                role="assistant",
                 content=context,
             )
         
@@ -255,68 +255,11 @@ def evaluate_meeting_readiness(user: LeadQualificationModel, message_content: st
     
     return qualification.meeting_readiness
 
-def get_context_template(business_model: str, contact: Contact) -> str:
+def get_context_template(contact: Contact) -> str:
     """Generate context template based on business model and contact information"""
     base_context = f"""
     You're speaking with {contact.name}
     Contact Number: {contact.phone_number if contact.phone_number else 'Not provided'}
     """
-    
-    if business_model == "B2B":
-        return base_context + f"""
-        Industry: {contact.industry if contact.industry else 'Not provided'}
-        Company Website: {contact.website_url if contact.website_url else 'Not provided'}
-        
-        Your Role:
-        - Act as a professional B2B sales representative
-        - Focus on business needs and pain points
-        [... rest of B2B specific instructions ...]
-        """
-    
-    elif business_model == "B2C":
-        return base_context + """
-        Your Role:
-        - Act as a friendly customer service representative
-        - Focus on individual needs and preferences
-        - Keep language simple and jargon-free
-        - Emphasize personal benefits
-        
-        Key Objectives:
-        1. Understand personal needs
-        2. Identify individual preferences
-        3. Build personal connection
-        4. Guide towards appropriate solution
-        
-        Qualification Process:
-        1. Understand Requirements:
-           - Ask about specific needs
-           - Explore usage scenarios
-        
-        2. Confirm Decision Making:
-           - Understand timeline
-           - Discuss budget expectations
-        
-        Meeting Link Sharing Criteria:
-        - Share meeting link when:
-            1. Customer shows clear interest
-            2. Has specific needs that require detailed discussion
-            3. Requests more information
-        """
-    
-    else:  # "BOTH"
-        return base_context + """
-        Your Role:
-        - Adapt your approach based on the conversation
-        - Start neutral and determine if speaking with business or individual
-        - Adjust language and focus accordingly
-        
-        Initial Assessment:
-        - Ask open-ended questions about their interest
-        - Listen for business or personal use indicators
-        - Adapt qualification process based on response
-        
-        Key Objectives:
-        1. Identify if business or personal use
-        2. Adjust communication style accordingly
-        3. Follow appropriate qualification process
-        """
+
+    return base_context
