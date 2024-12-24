@@ -26,7 +26,7 @@ async def create_category(
     return JSONResponse({'detail': "New Category Registered"}, status_code=status.HTTP_201_CREATED)
 
 @router.get('/all-category-options')
-async def get_all_categories(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def get_all_categories(db: Session = Depends(get_db)):
     categories= db.query(Category).all()
     return categories
 
@@ -83,16 +83,10 @@ async def create_product(
 @router.get('/')
 async def get_products(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     my_products= db.query(Product).filter(Product.user_id == current_user.id).all()
-    response= requests.get('https://dummyapi.online/api/movies')
-    if response.status_code == 200:
-        data= json.loads(response.text)
-    datt= []
-    datt.append(my_products)
-    datt.append(data)
-    return datt
+    return my_products
 
 @router.get('/{product_id}')
-async def get_product(product_id: int, db: Session = Depends(get_db), User= Depends(get_current_user)):
+async def get_product(product_id: int, db: Session = Depends(get_db), current_user: User= Depends(get_current_user)):
     get_prod= db.query(Product).filter(Product.id == product_id).first()
     if get_prod:
         return get_prod

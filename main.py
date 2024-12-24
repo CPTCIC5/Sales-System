@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from utils.auth import SECRET_KEY
+from utils.auth import SECRET_KEY,router as utils_router
 from routers import users, contacts, organizations, products
 from ai.app import router
 from wp import webhook
@@ -36,6 +36,7 @@ app.include_router(organizations.router)
 app.include_router(products.router)
 app.include_router(router)
 app.include_router(webhook.router)
+app.include_router(utils_router)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app)

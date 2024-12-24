@@ -69,14 +69,14 @@ def handle_tool_calls(tool_calls):
     
     return tool_outputs
 
-@router.post('/create/{contact_id}')
-def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.post('/{org_id}/create/{contact_id}')
+def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: int, db: Session = Depends(get_db)):
     try:
         prospect = db.query(Contact).filter(Contact.id == contact_id).first()
         if not prospect:
             raise HTTPException(status_code=404, detail="Contact not found")
         
-        organization = db.query(Organization).filter(Organization.root_user == current_user).first()
+        organization = db.query(Organization).filter(Organization.id == org_id).first()
         if not organization:
             raise HTTPException(status_code=404, detail="Organization not found")
         
