@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel
 from schemas.contacts_schema import PrompCreatetModel
 from wp.send_msg_imgs import send_txt_msg
+from wp.webhook import webhook
 from utils.auth import get_organization_products
 
 router= APIRouter(

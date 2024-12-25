@@ -17,7 +17,7 @@ version = os.getenv("VERSION")
 PORT = int(os.getenv("PORT", 8000))  # Default to 8000 if PORT is not set
  
 @router.post("/webhook")
-async def webhook(request: Request):
+async def webhook(request: Request, input_prompt: str):
     # Log incoming messages
     body = await request.json()
     print("Incoming webhook message:", body)
@@ -34,7 +34,7 @@ async def webhook(request: Request):
         reply_data = {
             "messaging_product": "whatsapp",
             "to": message["from"],
-            "text": {"body": "Echo: " + message["text"]["body"]},
+            "text": {"body": input_prompt},
             "context": {
                 "message_id": message["id"],  # Shows the message as a reply to the original user message
             },

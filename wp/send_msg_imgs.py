@@ -10,25 +10,25 @@ version = os.getenv("VERSION")
 number_id = os.getenv("PHONE_NUMBER_ID")
  
  
-def send_txt_msg(user_contact_number: str, output: str):
+def send_txt_msg(phone_num: str, output: str):
     url = f"https://graph.facebook.com/{version}/{number_id}/messages"
- 
+
     headers = {
         "Authorization" : f"Bearer {token}",
         "Content-type": "application/json"
     }
- 
+
     data = {
-        "messaging_product": "whatsapp",    
+        "messaging_product": "whatsapp",
         "recipient_type": "individual",
-        "to": user_contact_number,
+        "to": phone_num,
         "type": "text",
- 
+    
         "text": {
             "body": output # use body to send msgs 
         }
     }
-    print(user_contact_number)
+    
     response = requests.post(url=url, headers=headers, json=data)
     print(response.json())
     return response
