@@ -12,6 +12,7 @@ from schemas.contacts_schema import PrompCreatetModel
 from wp.send_msg_imgs import send_txt_msg
 from wp.webhook import webhook
 from utils.auth import get_organization_products
+import asyncio
 
 router= APIRouter(
     prefix="/api/prompt"
@@ -92,7 +93,7 @@ def handle_tool_calls(tool_calls):
     return tool_outputs
 
 @router.post('/{org_id}/create/{contact_id}')
-def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: int, db: Session = Depends(get_db)):
+async def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: int, db: Session = Depends(get_db)):
     try:
         prospect = db.query(Contact).filter(Contact.id == contact_id).first()
         if not prospect:
@@ -201,7 +202,6 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
                         limit=1
                     )
                     assistant_response = messages.data[0].content[0].text.value
-                    send_txt_msg(prospect.phone_number, assistant_response)
                     # Store both the prompt and response in database
                     new_prompt = Prompt(
                         organization_id=organization.id,
@@ -219,8 +219,7 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
                     return "I apologize, but I'm having trouble processing your request. Could you please rephrase that?"
                     
                 # Wait before polling again with exponential backoff
-                import time
-                time.sleep(1)
+                await asyncio.sleep(1)
 
         except Exception as e:
             print(f"Error in chat_with_assistant: {str(e)}")
