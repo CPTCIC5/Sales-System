@@ -31,8 +31,8 @@ client= OpenAI()
 
 # Store the assistant ID for future use
 
-def get_meeting_link():
-    return "https://outlook.office.com/bookwithme/user/8ef8abcb1a04480ab07f1f7165fbfd2f%40salesgenio.ai?anonymous&isanonymous=true"
+def get_meeting_link(org_meeting_url : str):
+    return org_meeting_url
 
 
 def safe_execute_tool(func_name: str, arguments: Dict[str, Any], org_id: int = None) -> Optional[Dict[str, Any]]:

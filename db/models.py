@@ -87,7 +87,7 @@ class Organization(Base):
     created_at= Column(DateTime, default=datetime.now())
     assistant_id= Column(String(50), unique=True, nullable=True)
     business_model = Column(String(10), nullable=False)  # "B2B", "B2C", or "BOTH"
-
+    meeting_url= Column(String(100), nullable=True)
     # Relationships
     root_user= relationship("User", foreign_keys=[root_user_id])
     members= relationship("User", secondary=organization_members, back_populates="organizations")
