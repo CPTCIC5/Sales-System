@@ -31,17 +31,20 @@ client= OpenAI()
 
 # Store the assistant ID for future use
 
-def get_meeting_link(org_meeting_url : str):
-    return org_meeting_url
+def get_meeting_link(org_meeting_url: str = None):
+    """Get meeting link for the organization"""
+    if not org_meeting_url:
+        return {"error": "No meeting URL configured"}
+    return {"meeting_url": org_meeting_url}
 
 
-def safe_execute_tool(func_name: str, arguments: Dict[str, Any], org_id: int = None) -> Optional[Dict[str, Any]]:
+def safe_execute_tool(func_name: str, arguments: Dict[str, Any], org_id: int = None, org_meeting_url: str = None) -> Optional[Dict[str, Any]]:
     """
     Safely execute tool functions with error handling and logging
     """
     try:
         if func_name == "get_meeting_link":
-            result = get_meeting_link()
+            result = get_meeting_link(org_meeting_url)
         elif func_name == "get_organization_products":
             # Use the org_id passed from the route
             if not org_id:
@@ -140,7 +143,19 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
                             "description": "Get products for the current organization",
                             "parameters": {
                                 "type": "object",
-                                "properties": {},  # No parameters needed since we use route org_id
+                                "properties": {},
+                                "required": []
+                            }
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_meeting_link",
+                            "description": "Get the organization's meeting link",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {},
                                 "required": []
                             }
                         }
@@ -158,8 +173,13 @@ def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, org_id: 
                     tool_outputs = []
                     for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                         function_name = tool_call.function.name
-                        # Pass org_id from route parameter
-                        result = safe_execute_tool(function_name, {}, org_id=org_id)
+                        # Pass both org_id and meeting_url
+                        result = safe_execute_tool(
+                            function_name, 
+                            {}, 
+                            org_id=org_id,
+                            org_meeting_url=organization.meeting_url
+                        )
                         tool_outputs.append({
                             "tool_call_id": tool_call.id,
                             "output": json.dumps(result)
