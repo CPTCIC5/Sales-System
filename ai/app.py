@@ -33,6 +33,7 @@ client= OpenAI()
 
 def get_meeting_link(org_meeting_url: str = None):
     """Get meeting link for the organization"""
+    print('fn-01    ')
     if not org_meeting_url:
         return {"error": "No meeting URL configured"}
     return {"meeting_url": org_meeting_url}

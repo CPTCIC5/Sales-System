@@ -98,7 +98,16 @@ class OrganizationCreateModel(BaseModel):
         if "business_name" in values:
             values["vspace_id"] = create_vspace_organization(values["business_name"])
         return values
-        
+
+
+class OrganizationUpdateModel(BaseModel):
+      business_name: str = None
+      business_webURL: str= None
+      industry_type: str= None
+      business_model: str= None
+      meeting_url: str= None
+      root_user: int= None
+
 
 class OrganizationInviteCreateModel(BaseModel):
     accepted: bool= False

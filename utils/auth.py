@@ -40,7 +40,7 @@ router= APIRouter(
 )
 
 @router.get("/products/org/{org_id}")
-async def get_organization_products(org_id: int, db: Session = Depends(get_db)):
+def get_organization_products(org_id: int, db: Session = Depends(get_db)):
     org_products= db.query(Product).filter(Product.org_id == org_id).all()
     my_org_keys= db.query(OrganizationFileSystem).filter(OrganizationFileSystem.org_id == org_id).first()
     print(my_org_keys.api)

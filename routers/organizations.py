@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.orm import Session
 from db.models import get_db,User,Organization,OrganizationInvite, OrganizationKeys, OrganizationFileSystem
 from utils.auth import get_current_user
-from schemas.organizations_schema import OrganizationCreateModel, OrganizationInviteCreateModel, OrganizationFileSystemUpdate
+from schemas.organizations_schema import OrganizationCreateModel, OrganizationUpdateModel, OrganizationInviteCreateModel, OrganizationFileSystemUpdate
 from fastapi.responses import JSONResponse
 
 router= APIRouter(
@@ -106,7 +106,7 @@ async def organization_invite(
         status_code=status.HTTP_201_CREATED
     )
 
-@router.patch('/organization-filesystem')
+@router.patch('/filesystem')
 async def update_organization_filesystem(
     data: OrganizationFileSystemUpdate, 
     db: Session = Depends(get_db), 
@@ -151,5 +151,34 @@ async def update_organization_filesystem(
 
     return JSONResponse(
         {"detail": "Organization filesystem updated successfully"},
+        status_code=status.HTTP_200_OK
+    )
+
+
+@router.patch('/update')
+async def update_org(data: OrganizationUpdateModel,  db: Session= Depends(get_db), current_user: User= Depends(get_current_user)):
+    organization= db.query(Organization).filter(Organization.root_user == current_user).first()
+    if not organization:
+        raise HTTPException(detail="Nah buddy, not a chance", status_code=status.HTTP_401_UNAUTHORIZED)
+    
+    organization.business_name = data.business_name if data.business_name else organization.business_name
+    organization.business_model = data.business_model if data.business_model else organization.business_model
+    organization.business_webURL = data.business_webURL if data.business_webURL else organization.business_webURL
+    organization.industry_type = data.industry_type if data.industry_type else organization.industry_type
+    organization.meeting_url = data.meeting_url if data.meeting_url else organization.meeting_url
+    organization.root_user = data.root_user if data.root_user else organization.root_user
+
+    try:
+        db.commit()
+        db.refresh(organization)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
+    return JSONResponse(
+        {"detail": "Organization Updated"},
         status_code=status.HTTP_200_OK
     )
