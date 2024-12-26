@@ -222,6 +222,7 @@ class Prompt(Base):
     contact_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)  # Foreign Key to Contact
     input_text = Column(Text)
     response_text = Column(Text)
+    is_seen= Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now())
 
     # Relationships

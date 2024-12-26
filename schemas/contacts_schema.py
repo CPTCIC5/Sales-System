@@ -61,3 +61,7 @@ class PromptDataDetailModel(BaseModel):
     id: int
     created_at: datetime
     contact: ContactModel
+
+
+class PromptStatusUpdateModel(BaseModel):
+    is_seen: bool

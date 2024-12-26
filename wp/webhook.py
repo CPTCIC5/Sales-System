@@ -54,16 +54,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             print(f"Error processing message: {str(e)}")
             return PlainTextResponse('', status_code=200)
 
-            # Send reply message
-        reply_data = {
-                "messaging_product": "whatsapp",
-                "to": sender_phone,
-                "text": {"body": assistant_response},  # Replace with assistant_response
-                "context": {
-                    "message_id": message["id"],  # Shows the message as a reply to the original user message
-                },
-            }
-        print(reply_data)
         send_txt_msg(sender_phone, assistant_response)
             # Mark incoming message as read
         read_data = {
@@ -71,6 +61,17 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
                 "status": "read",
                 "message_id": message["id"],
             }
+        print(read_data)
+        if read_data["status"] == "read":
+            prompt_instance= db.query(Prompt).filter(Prompt.contact_id == contact.id).first()
+            print('fnnn-011')
+            if prompt_instance.is_seen != True:
+                print('fnnnn-02')
+                prompt_instance.is_seen= True
+                db.add(prompt_instance)
+                db.commit()
+                db.refresh(prompt_instance)
+
         async with httpx.AsyncClient() as client:
                 await client.post(
                     f"https://graph.facebook.com/{version}/{business_phone_number_id}/messages", 
