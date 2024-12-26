@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ai.app import chat_with_assistant
 from schemas.contacts_schema import PrompCreatetModel
 from db.models import get_db, Contact, Organization, Prompt  # Import your models
-
+from .send_msg_imgs import send_txt_msg
 load_dotenv()
 
 router = APIRouter(
@@ -28,7 +28,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
     if message.get("type") == "text":
         business_phone_number_id = body.get("entry", [{}])[0].get("changes", [{}])[0].get("value", {}).get("metadata", {}).get("phone_number_id")
-        message_text = str(message["text"]["body"])
+        message_text = str(message["text"]["body"])  #USER-INPUT/REPLY
         sender_phone = message["from"]
 
         try:
@@ -64,13 +64,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
                 },
             }
         print(reply_data)
-        async with httpx.AsyncClient() as client: # not posting the reply data
-            await client.post(
-                f"https://graph.facebook.com/{version}/{business_phone_number_id}/messages",
-                headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
-                json=reply_data
-            )
-
+        send_txt_msg(sender_phone, assistant_response)
             # Mark incoming message as read
         read_data = {
                 "messaging_product": "whatsapp",
@@ -83,11 +77,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
                     headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
                     json=read_data
                 )
-
-      
-
-
-
     return PlainTextResponse('', status_code=200)
 
 
