@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, List
 import json
 from pydantic import BaseModel
 from schemas.contacts_schema import PrompCreatetModel
+from wp.send_msg_imgs import send_txt_msg
 
 from utils.auth import get_organization_products
 import asyncio
@@ -201,6 +202,7 @@ async def chat_with_assistant(user_input: PrompCreatetModel, contact_id: int, or
                         limit=1
                     )
                     assistant_response = messages.data[0].content[0].text.value
+                    send_txt_msg(prospect.phone_number ,assistant_response)
                     # Store both the prompt and response in database
                     new_prompt = Prompt(
                         organization_id=organization.id,

@@ -54,7 +54,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             print(f"Error processing message: {str(e)}")
             return PlainTextResponse('', status_code=200)
 
-        send_txt_msg(sender_phone, assistant_response)
+        #send_txt_msg(sender_phone, assistant_response)
             # Mark incoming message as read
         read_data = {
                 "messaging_product": "whatsapp",
