@@ -228,3 +228,19 @@ class Prompt(Base):
     # Relationships
     organization = relationship("Organization")
     contact = relationship("Contact", back_populates="prompts")
+
+"""
+class Template(Base):
+    __tablename__ = 'templates'
+
+    id= Column(Integer, primary_key=True)
+    user_id= Column(Integer, ForeignKey('users.id'))
+    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
+    meta_id= Column(Integer, nullable=True)
+    name= Column(String(100), nullable=False)
+    category= Column(String(100), nullable=False)
+    language= Column(String(100), nullable=False)
+    approval_status= Column(Boolean, default=False)
+    created_at= Column(DateTime, default=datetime.now())
+    last_updated= Column(DateTime, onupdate=datetime.now())
+"""
